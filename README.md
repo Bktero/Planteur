@@ -1,3 +1,3 @@
 # Planteur
 
-_Planteur_ Plant is a system for automatic plant monitoring and watering.
+_Planteur_ is a system for automatic plant monitoring and watering.
