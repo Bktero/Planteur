@@ -1,10 +1,17 @@
 """ This is the entry point for the Planteur application."""
 import json
 import logging
+import random
+import socket
+import time
+import monitoring
 
 import plant
 
 __author__ = 'pgradot'
+
+UDP_IPADDR = 'localhost'
+UDP_PORT = 4245
 
 
 class App(object):
@@ -25,11 +32,16 @@ class App(object):
     def run(self):
         logging.info('Planteur application starts')
 
-        # Load configuration from configuration file
+        # Load configuration and plants
         self._load_configuration()
-
-        # Load plants from description file
         self._load_plants()
+
+        # Start monitoring adapters
+        network_adapter = monitoring.NetworkMonitoringAdapter(UDP_IPADDR, UDP_PORT)
+        network_adapter.start()
+
+        wired_adapter = monitoring.StubWiredAdapter()
+        wired_adapter.start()
 
     def _load_configuration(self):
         logging.info('Loading configuration...')
@@ -50,3 +62,12 @@ class App(object):
 if __name__ == '__main__':
     app = App('config.json', 'plants.json')
     app.run()
+
+    # Stub for plants that are connected to the network
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    while True:
+        message = 'Plant: network id={}, humidity={}'.format("ae1256", random.randint(0, 100))
+        message_as_bytes = message.encode()
+        sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
+        time.sleep(2)
+
