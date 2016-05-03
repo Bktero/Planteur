@@ -40,7 +40,7 @@ class App(object):
         network_adapter = monitoring.NetworkMonitoringAdapter(UDP_IPADDR, UDP_PORT)
         network_adapter.start()
 
-        wired_adapter = monitoring.StubWiredAdapter()
+        wired_adapter = monitoring.StubWiredAdapter('pgt_bonzai_wired')
         wired_adapter.start()
 
     def _load_configuration(self):
@@ -57,17 +57,30 @@ class App(object):
         loader = plant.PlantLoader('plants.json')
         print(loader)
         plants = loader.load()
-        print(plants)
+        print(str(plants))
+
+
+class StubNetworkPlant(object):
+
+    def __init__(self, uid: str):
+        self.uid = uid
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    def emit(self):
+        message = json.dumps({'uid': self.uid, 'humidity': random.randint(0, 100), 'temperature': random.randint(10, 30)})
+        message_as_bytes = message.encode()
+        self.sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
+
 
 if __name__ == '__main__':
     app = App('config.json', 'plants.json')
     app.run()
 
-    # Stub for plants that are connected to the network
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Stub network plants
+    tomatoes = StubNetworkPlant("pgt_tomatoes_1")
+    ficus = StubNetworkPlant("pgt_ficus_elastica_1")
+    plants = [tomatoes, ficus]
     while True:
-        message = 'Plant: network id={}, humidity={}'.format("ae1256", random.randint(0, 100))
-        message_as_bytes = message.encode()
-        sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
-        time.sleep(2)
-
+        for plant in plants:
+            plant.emit()
+            time.sleep(2)
