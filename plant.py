@@ -10,6 +10,9 @@ __author__ = 'pgradot'
 
 
 class ConnectionType(Enum):
+    """This enumeration provides the possible connection mediums between
+    a plant peripheral and the Planteur gateway.
+    """
     network = 1
     wired = 2
     zigbee = 3

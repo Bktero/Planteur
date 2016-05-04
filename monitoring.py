@@ -10,6 +10,7 @@ import random
 import socket
 import threading
 import time
+from queue import Queue
 
 from collections import namedtuple
 
@@ -30,14 +31,42 @@ def create_monitoring_event(uid: str, humidity: int, temperature: float):
     return MonitoringEvent(time.time(), uid, humidity, temperature)
 
 
+class MonitoringAggregator(object):
+    """A MonitorAggregator processes events.
+
+    It has an internal queue.Queue to safely receive events from other threads
+    and process the events in its own thread."""
+    def __init__(self):
+        self.queue = Queue()
+
+    def add(self, event: MonitoringEvent):
+        """Add a event that the aggregator will then consume."""
+        self.queue.put(event)
+
+    def start(self):
+        """Start the aggregator's thread and start processing events."""
+        aggregator_thread = threading.Thread(target=self._process_events, name=self.__class__.__name__ + 'thread')
+        aggregator_thread.start()
+
+    def _process_events(self):
+        """Get events from the queue and process them.
+
+        This is the internal function for the aggregator's thread."""
+        while True:
+            event = self.queue.get()
+            logging.info('%s: processing %s', self.__class__.__name__, event)
+            self.queue.task_done()
+
+
 class StubWiredAdapter(object):
     """A StubWiredAdapter is a fake class to stub a plant with wired communication.
     Real wired adapters should read GPIO/ADC/etc to retrieve values from the sensors.
     """
-    def __init__(self, uid: str):
+    def __init__(self, aggregator: MonitoringAggregator, uid: str):
         """ Create a new adapter.
         :param uid: the UID of the plant
         """
+        self.aggregator = aggregator
         self.uid = uid
 
     def start(self):
@@ -48,8 +77,9 @@ class StubWiredAdapter(object):
     def _poll_sensors(self):
         """Fake sensor polling."""
         while True:
+            logging.info("%s: polling new value", self.__class__.__name__)
             event = create_monitoring_event(self.uid, random.randint(0, 100), None)
-            logging.info("%s: polled [%s]", self.__class__.__name__, event)
+            self.aggregator.add(event)
             time.sleep(3)
 
 
@@ -63,14 +93,17 @@ class NetworkMonitoringAdapter(object):
     MonitoringAggregator.
     """
 
-    def __init__(self, ipaddr: str, port: int):
+    def __init__(self, aggregator: MonitoringAggregator, ipaddr: str, port: int):
         """Create a new NetworkMonitoringAdapter.
 
         :param ipaddr: the IP address of the host
         :param port: the port to listen
         """
+        self.aggregator = aggregator
         self.ipaddr = ipaddr
         self.port = port
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def start(self):
         """Start the server thread."""
@@ -79,13 +112,13 @@ class NetworkMonitoringAdapter(object):
 
     def _run_server(self):
         """Create UDP server, receive and process datagrams."""
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((self.ipaddr, self.port))
         logging.info("%s: waiting for datagram on %s:%d", self.__class__.__name__, self.ipaddr, self.port)
         while True:
             message, address = self.sock.recvfrom(2048)
             # TODO adjust buffer size (for now, it is 2048 bytes)
             message_as_string = bytes.decode(message)
+            logging.info("%s: received [%s] from %s", self.__class__.__name__, message_as_string, address)
             json_dict = json.loads(message_as_string)
-            event = create_monitoring_event(json_dict['uid'], json_dict['temperature'], json_dict['humidity'])
-            logging.info("%s: received [%s] from %s", self.__class__.__name__, event, address)
+            event = create_monitoring_event(json_dict['uid'], json_dict['humidity'], json_dict['temperature'])
+            self.aggregator.add(event)

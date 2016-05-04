@@ -16,6 +16,8 @@ UDP_PORT = 4245
 
 
 class App(object):
+    """The Planteur application is here!"""
+
     def __init__(self, config_pathname, plant_pathname):
         """ Create a new application.
 
@@ -31,17 +33,21 @@ class App(object):
         logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
 
     def run(self):
+        """Execute the application, just after it has been created."""
         logging.info('Planteur application starts')
 
         # Load configuration and plants
         self._load_configuration()
         self._load_plants()
 
-        # Start monitoring adapters
-        network_adapter = monitoring.NetworkMonitoringAdapter(UDP_IPADDR, UDP_PORT)
+        # Start monitoring adapters and their aggregator
+        aggregator = monitoring.MonitoringAggregator()
+        aggregator.start()
+
+        network_adapter = monitoring.NetworkMonitoringAdapter(aggregator, UDP_IPADDR, UDP_PORT)
         network_adapter.start()
 
-        wired_adapter = monitoring.StubWiredAdapter('pgt_bonzai_wired')
+        wired_adapter = monitoring.StubWiredAdapter(aggregator, 'pgt_bonzai_wired')
         wired_adapter.start()
 
     def _load_configuration(self):
@@ -57,8 +63,8 @@ class App(object):
     def _load_plants(self):
         loader = plant.PlantLoader('plants.json')
         print(loader)
-        plants = loader.load()
-        print(str(plants))
+        loaded_plants = loader.load()
+        print(str(loaded_plants))
 
 
 class StubNetworkPlant(object):
