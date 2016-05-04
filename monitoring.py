@@ -11,7 +11,23 @@ import socket
 import threading
 import time
 
+from collections import namedtuple
+
 __author__ = 'pgradot'
+
+MonitoringEvent = namedtuple('MonitoringEvent', ['timestamp', 'uid', 'humidity', 'temperature'])
+"""When a monitoring event occurs, whether because a plant has sent some data
+of because Planteur decided to read a sensor, a monitoring event is created. It
+contains the time of generation, the UID of the plant, and the data from the
+sensor.
+"""
+
+
+def create_monitoring_event(uid: str, humidity: int, temperature: float):
+    """A factory method to create a monitoring event with the current time
+    as the timestamp of the event.
+    """
+    return MonitoringEvent(time.time(), uid, humidity, temperature)
 
 
 class StubWiredAdapter(object):
@@ -32,8 +48,8 @@ class StubWiredAdapter(object):
     def _poll_sensors(self):
         """Fake sensor polling."""
         while True:
-            message = json.dumps({'uid': self.uid, 'humidity': random.randint(0, 100), 'temperature': random.randint(10, 30)})
-            logging.info("%s: polled [%s]", self.__class__.__name__, message)
+            event = create_monitoring_event(self.uid, random.randint(0, 100), None)
+            logging.info("%s: polled [%s]", self.__class__.__name__, event)
             time.sleep(3)
 
 
@@ -70,6 +86,6 @@ class NetworkMonitoringAdapter(object):
             message, address = self.sock.recvfrom(2048)
             # TODO adjust buffer size (for now, it is 2048 bytes)
             message_as_string = bytes.decode(message)
-            logging.info("%s: received [%s] from %s", self.__class__.__name__, message_as_string, address)
-
-
+            json_dict = json.loads(message_as_string)
+            event = create_monitoring_event(json_dict['uid'], json_dict['temperature'], json_dict['humidity'])
+            logging.info("%s: received [%s] from %s", self.__class__.__name__, event, address)

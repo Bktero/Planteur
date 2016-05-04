@@ -4,7 +4,20 @@
 import json
 import logging
 
+from enum import Enum
+
 __author__ = 'pgradot'
+
+
+class ConnectionType(Enum):
+    network = 1
+    wired = 2
+    zigbee = 3
+
+
+print(ConnectionType)
+print(ConnectionType.wired)
+print(ConnectionType['wired'])
 
 
 class Plant(object):
