@@ -11,14 +11,15 @@ import socket
 import threading
 import time
 from queue import Queue
-
 from collections import namedtuple
+
+import database_storer
 
 __author__ = 'pgradot'
 
 MonitoringEvent = namedtuple('MonitoringEvent', ['timestamp', 'uid', 'humidity', 'temperature'])
-"""When a monitoring event occurs, whether because a plant has sent some data
-of because Planteur decided to read a sensor, a monitoring event is created. It
+"""When a monitoring event occurs, either because a plant has sent some data
+or because Planteur has decided to read a sensor, a monitoring event is created. It
 contains the time of generation, the UID of the plant, and the data from the
 sensor.
 """
@@ -52,9 +53,12 @@ class MonitoringAggregator(object):
         """Get events from the queue and process them.
 
         This is the internal function for the aggregator's thread."""
+        db_storer = database_storer.DatabaseStorer('planteur.db')
+
         while True:
             event = self.queue.get()
             logging.info('%s: processing %s', self.__class__.__name__, event)
+            db_storer.store_monitoring(event)
             self.queue.task_done()
 
 
