@@ -87,18 +87,18 @@ class StubWiredAdapter(object):
             time.sleep(3)
 
 
-class NetworkMonitoringAdapter(object):
-    """A NetworkMonitoringAdapter is able to receive monitoring data from the
+class NetworkAdapter(object):
+    """A NetworkAdapter is able to receive monitoring data from the
     network.
 
     Plants that are connected to the local network send their data periodically.
-    They use UDP packets. If a NetworkMonitoringAdapter is listening of that port
+    They use UDP packets. If a NetworkAdapter is listening on that port
     then it will receive the data, format in a common format and add then to a
     MonitoringAggregator.
     """
 
     def __init__(self, aggregator: MonitoringAggregator, ipaddr: str, port: int):
-        """Create a new NetworkMonitoringAdapter.
+        """Create a new NetworkAdapter.
 
         :param ipaddr: the IP address of the host
         :param port: the port to listen
@@ -117,7 +117,7 @@ class NetworkMonitoringAdapter(object):
     def _run_server(self):
         """Create UDP server, receive and process datagrams."""
         self.sock.bind((self.ipaddr, self.port))
-        logging.info("%s: waiting for datagram on %s:%d", self.__class__.__name__, self.ipaddr, self.port)
+        logging.info("%s: waiting for datagrams on %s:%d", self.__class__.__name__, self.ipaddr, self.port)
         while True:
             message, address = self.sock.recvfrom(2048)
             # TODO adjust buffer size (for now, it is 2048 bytes)

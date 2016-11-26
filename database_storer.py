@@ -1,5 +1,8 @@
 """This module provides a class that is able to store data in an SQLite3
 database.
+
+To visualize the data inside an QSLite3 file, you can use SQLiteBrower. See
+http://sqlitebrowser.org/.
 """
 import sqlite3
 
@@ -15,7 +18,7 @@ class DatabaseStorer:
 
         :param name: the name of the SQLite file
         """
-        self.conn  = sqlite3.connect(name)
+        self.conn = sqlite3.connect(name)
 
         cursor = self.conn.cursor()
         cursor.execute('''
@@ -27,6 +30,10 @@ class DatabaseStorer:
             )
             ''')
         self.conn.commit()
+
+    def __del__(self):
+        """Delete object and cleanup."""
+        self.conn.close()
 
     def store_monitoring(self, event):
         """ Store a monitoring event in the database.

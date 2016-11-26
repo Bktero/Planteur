@@ -6,13 +6,12 @@ import socket
 import time
 
 import monitoring
-
 import plant
 
 __author__ = 'pgradot'
 
 UDP_IPADDR = 'localhost'
-UDP_PORT = 4245
+UDP_PORT = 14245
 
 
 class App(object):
@@ -26,32 +25,40 @@ class App(object):
         :param plant_pathname: the pathname to the plant description file
         :type plant_pathname: str
         """
+        # Load configuration
+        logging.info('Loading configuration...')
         self.config_pathname = config_pathname
-        self.plant_pathname = plant_pathname
+        self._load_configuration()
 
-        # Default configuration for logging
-        logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+        # Load plants
+        logging.info('Logging plants...')
+        loader = plant.PlantLoader(plant_pathname)
+        self.plants = loader.load()
 
     def run(self):
         """Execute the application, just after it has been created."""
         logging.info('Planteur application starts')
 
-        # Load configuration and plants
-        self._load_configuration()
-        self._load_plants()
-
-        # Start monitoring adapters and their aggregator
+        # Start monitor aggregator
         aggregator = monitoring.MonitoringAggregator()
         aggregator.start()
 
-        network_adapter = monitoring.NetworkMonitoringAdapter(aggregator, UDP_IPADDR, UDP_PORT)
-        network_adapter.start()
+        # Start network adapter if there is at least one network plant
+        for p in self.plants:
+            if p.connection is plant.ConnectionType.network:
+                network_adapter = monitoring.NetworkAdapter(aggregator, UDP_IPADDR, UDP_PORT)
+                network_adapter.start()
+                break
 
-        wired_adapter = monitoring.StubWiredAdapter(aggregator, 'pgt_bonzai_wired')
-        wired_adapter.start()
+        # Start a wired adapter for each wired plant
+        for p in self.plants:
+            if p.connection is plant.ConnectionType.wired:
+                wired_adapter = monitoring.StubWiredAdapter(aggregator, p.uid)
+                wired_adapter.start()
+
+        # TODO Start zigbee adapters
 
     def _load_configuration(self):
-        logging.info('Loading configuration...')
         with open(self.config_pathname) as file:
             json_dict = json.load(file)
             parameter = json_dict['category']['param']
@@ -59,12 +66,6 @@ class App(object):
             print(parameter)
             parameter = json_dict['another_category']['other_param']
             print(parameter)
-
-    def _load_plants(self):
-        loader = plant.PlantLoader('plants.json')
-        print(loader)
-        loaded_plants = loader.load()
-        print(str(loaded_plants))
 
 
 class StubNetworkPlant(object):
@@ -80,14 +81,19 @@ class StubNetworkPlant(object):
 
 
 if __name__ == '__main__':
+    # Configure logging
+    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+
+    # Run Planteur
     app = App('config.json', 'plants.json')
     app.run()
 
     # Stub network plants
-    tomatoes = StubNetworkPlant("pgt_tomatoes_1")
-    ficus = StubNetworkPlant("pgt_ficus_elastica_1")
+    tomatoes = StubNetworkPlant('pgt_tomatoes_network')
+    ficus = StubNetworkPlant('pgt_ficus_network')
     plants = [tomatoes, ficus]
+
     while True:
-        for plant in plants:
-            plant.emit()
+        for p in plants:
+            p.emit()
             time.sleep(2)

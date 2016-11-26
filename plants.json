@@ -1,7 +1,19 @@
 {
   "plants": [
-    {"name": "Ficus Elastica"},
-    {"name": "Tomatoes"},
-    {"name": "Cactus (in the living room)"}
+    {
+      "uid": "pgt_ficus_network",
+      "name": "Ficus Elastica",
+      "connection" : "network"
+    },
+    {
+      "uid": "pgt_tomatoes_network",
+      "name": "Tomatoes",
+      "connection" : "network"
+    },
+    {
+      "uid": "pgt_cactus_wired",
+      "name": "Cactus (in the living room)",
+      "connection" : "wired"
+    }
   ]
 }
