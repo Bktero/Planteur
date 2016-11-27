@@ -7,65 +7,65 @@ import time
 
 import monitoring
 import plant
+import watering
 
 __author__ = 'pgradot'
 
 UDP_IPADDR = 'localhost'
-UDP_PORT = 14245
+UDP_PORT = 14246
 
 
-class App(object):
-    """The Planteur application is here!"""
+def planteur(config_pathname, plant_pathname):
+    """Run the Planteur!
 
-    def __init__(self, config_pathname, plant_pathname):
-        """ Create a new application.
+    :param config_pathname: the pathname to the configuration file
+    :type config_pathname: str
+    :param plant_pathname: the pathname to the plant description file
+    :type plant_pathname: str
+    """
+    logging.info('Planteur application starts')
 
-        :param config_pathname: the pathname to the configuration file
-        :type config_pathname: str
-        :param plant_pathname: the pathname to the plant description file
-        :type plant_pathname: str
-        """
-        # Load configuration
-        logging.info('Loading configuration...')
-        self.config_pathname = config_pathname
-        self._load_configuration()
+    # Load configuration
+    logging.info('Loading configuration...')
+    with open(config_pathname) as file:
+        json_dict = json.load(file)
+        parameter = json_dict['category']['param']
+        print(json_dict)
+        print(parameter)
+        parameter = json_dict['another_category']['other_param']
+        print(parameter)
 
-        # Load plants
-        logging.info('Logging plants...')
-        loader = plant.PlantLoader(plant_pathname)
-        self.plants = loader.load()
+    # Load plants
+    logging.info('Logging plants...')
+    loader = plant.PlantLoader(plant_pathname)
+    plants = loader.load()
 
-    def run(self):
-        """Execute the application, just after it has been created."""
-        logging.info('Planteur application starts')
+    # Create sprinkler and monitoring aggregator
+    sprinkler = watering.Sprinkler(plants)
 
-        # Start monitor aggregator
-        aggregator = monitoring.MonitoringAggregator()
-        aggregator.start()
+    aggregator = monitoring.MonitoringAggregator(plants)
+    aggregator.listeners.append(sprinkler)
 
-        # Start network adapter if there is at least one network plant
-        for p in self.plants:
-            if p.connection is plant.ConnectionType.network:
-                network_adapter = monitoring.NetworkAdapter(aggregator, UDP_IPADDR, UDP_PORT)
-                network_adapter.start()
-                break
+    # TODO create watering planner
 
-        # Start a wired adapter for each wired plant
-        for p in self.plants:
-            if p.connection is plant.ConnectionType.wired:
-                wired_adapter = monitoring.StubWiredAdapter(aggregator, p.uid)
-                wired_adapter.start()
+    aggregator.start()
+    sprinkler.start()
 
-        # TODO Start zigbee adapters
+    # Start network adapter if there is at least one network plant
+    for p in plants:
+        if p.connection is plant.ConnectionType.network:
+            network_adapter = monitoring.NetworkAdapter(aggregator, UDP_IPADDR, UDP_PORT)
+            network_adapter.start()
+            break
 
-    def _load_configuration(self):
-        with open(self.config_pathname) as file:
-            json_dict = json.load(file)
-            parameter = json_dict['category']['param']
-            print(json_dict)
-            print(parameter)
-            parameter = json_dict['another_category']['other_param']
-            print(parameter)
+    # Start a wired adapter for each wired plant
+    for p in plants:
+        if p.connection is plant.ConnectionType.wired:
+            wired_adapter = monitoring.StubWiredAdapter(aggregator, p.uid)
+            wired_adapter.start()
+
+    # TODO Start zigbee adapters
+
 
 
 class StubNetworkPlant(object):
@@ -85,8 +85,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
 
     # Run Planteur
-    app = App('config.json', 'plants.json')
-    app.run()
+    planteur('config.json', 'plants.json')
+
 
     # Stub network plants
     tomatoes = StubNetworkPlant('pgt_tomatoes_network')

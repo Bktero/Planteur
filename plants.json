@@ -3,17 +3,20 @@
     {
       "uid": "pgt_ficus_network",
       "name": "Ficus Elastica",
-      "connection" : "network"
+      "connection": "network",
+      "watering": "nowatering"
     },
     {
       "uid": "pgt_tomatoes_network",
       "name": "Tomatoes",
-      "connection" : "network"
+      "connection": "network",
+      "watering": "conditional"
     },
     {
       "uid": "pgt_cactus_wired",
       "name": "Cactus (in the living room)",
-      "connection" : "wired"
+      "connection": "wired",
+      "watering": "planned"
     }
   ]
 }

@@ -10,7 +10,7 @@ import random
 import socket
 import threading
 import time
-from queue import Queue
+import queue
 from collections import namedtuple
 
 import database_storer
@@ -24,7 +24,6 @@ contains the time of generation, the UID of the plant, and the data from the
 sensor.
 """
 
-
 def create_monitoring_event(uid: str, humidity: int, temperature: float):
     """A factory method to create a monitoring event with the current time
     as the timestamp of the event.
@@ -32,17 +31,19 @@ def create_monitoring_event(uid: str, humidity: int, temperature: float):
     return MonitoringEvent(time.time(), uid, humidity, temperature)
 
 
-class MonitoringAggregator(object):
+class MonitoringAggregator:
     """A MonitorAggregator processes events.
 
-    It has an internal queue.Queue to safely receive events from other threads
+    It has an internal queue to safely receive events from other threads
     and process the events in its own thread."""
-    def __init__(self):
-        self.queue = Queue()
+    def __init__(self, plants):
+        self.listeners = list()
+        self._plants = plants
+        self._queue = queue.Queue()
 
-    def add(self, event: MonitoringEvent):
-        """Add a event that the aggregator will then consume."""
-        self.queue.put(event)
+    def post(self, event: MonitoringEvent):
+        """Post an event that the aggregator will then consume."""
+        self._queue.put(event)
 
     def start(self):
         """Start the aggregator's thread and start processing events."""
@@ -52,17 +53,37 @@ class MonitoringAggregator(object):
     def _process_events(self):
         """Get events from the queue and process them.
 
-        This is the internal function for the aggregator's thread."""
+        Basically, the aggregator drops events about unknown plants and
+        broadcast other events to its listeners.
+        """
         db_storer = database_storer.DatabaseStorer('planteur.db')
 
         while True:
-            event = self.queue.get()
-            logging.info('%s: processing %s', self.__class__.__name__, event)
+            # Retrieve event
+            event = self._queue.get()
+            logging.info('%s: processing event %s', self.__class__.__name__, event)
             db_storer.store_monitoring(event)
-            self.queue.task_done()
+            # FIXME do storage in a listener?
+
+            # Check if this plant is in the list
+            known = False
+            for p in self._plants:
+                if p.uid == event.uid:
+                    known = True
+                    break
+
+            # Process or drop
+            if known:
+                for listener in self.listeners:
+                    listener.process(event)
+            else:
+                logging.error('%s: unknown plant %s', self.__class__.__name__, event.uid)
+
+            # Release queue
+            self._queue.task_done()
 
 
-class StubWiredAdapter(object):
+class StubWiredAdapter:
     """A StubWiredAdapter is a fake class to stub a plant with wired communication.
     Real wired adapters should read GPIO/ADC/etc to retrieve values from the sensors.
     """
@@ -83,11 +104,11 @@ class StubWiredAdapter(object):
         while True:
             logging.info("%s: polling new value", self.__class__.__name__)
             event = create_monitoring_event(self.uid, random.randint(0, 100), None)
-            self.aggregator.add(event)
+            self.aggregator.post(event)
             time.sleep(3)
 
 
-class NetworkAdapter(object):
+class NetworkAdapter:
     """A NetworkAdapter is able to receive monitoring data from the
     network.
 
@@ -125,4 +146,4 @@ class NetworkAdapter(object):
             logging.info("%s: received [%s] from %s", self.__class__.__name__, message_as_string, address)
             json_dict = json.loads(message_as_string)
             event = create_monitoring_event(json_dict['uid'], json_dict['humidity'], json_dict['temperature'])
-            self.aggregator.add(event)
+            self.aggregator.post(event)
