@@ -5,6 +5,7 @@ import random
 import socket
 import time
 
+import database
 import monitoring
 import plant
 import watering
@@ -40,10 +41,14 @@ def planteur(config_pathname, plant_pathname):
     loader = plant.PlantLoader(plant_pathname)
     plants = loader.load()
 
-    # Create sprinkler and monitoring aggregator
+    # Create sprinkler, monitoring aggregator and database storer
+    storer = database.DatabaseStorer('planteur.db')
+
     sprinkler = watering.Sprinkler(plants)
+    sprinkler.listeners.append(storer)
 
     aggregator = monitoring.MonitoringAggregator(plants)
+    aggregator.listeners.append(storer)
     aggregator.listeners.append(sprinkler)
 
     # TODO create watering planner
@@ -64,7 +69,7 @@ def planteur(config_pathname, plant_pathname):
             wired_adapter = monitoring.StubWiredAdapter(aggregator, p.uid)
             wired_adapter.start()
 
-    # TODO Start zigbee adapters
+    # TODO start zigbee adapters
 
 
 
@@ -74,8 +79,16 @@ class StubNetworkPlant(object):
         self.uid = uid
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+        self.humidity = 0
+
     def emit(self):
-        message = json.dumps({'uid': self.uid, 'humidity': random.randint(0, 100), 'temperature': random.randint(10, 30)})
+        self.humidity += 1
+        if self.humidity > 100:
+            self.humidity = 0
+
+        # self.humidity = random.randint(0, 100)
+
+        message = json.dumps({'uid': self.uid, 'humidity': self.humidity, 'temperature': random.randint(10, 30)})
         message_as_bytes = message.encode()
         self.sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
 
@@ -96,4 +109,4 @@ if __name__ == '__main__':
     while True:
         for p in plants:
             p.emit()
-            time.sleep(2)
+            time.sleep(0.2)

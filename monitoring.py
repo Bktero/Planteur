@@ -6,14 +6,12 @@ may be necessary to ask them from time to time (eg: wired).
 """
 import json
 import logging
-import random
+# import random
 import socket
 import threading
 import time
 import queue
 from collections import namedtuple
-
-import database_storer
 
 __author__ = 'pgradot'
 
@@ -23,6 +21,7 @@ or because Planteur has decided to read a sensor, a monitoring event is created.
 contains the time of generation, the UID of the plant, and the data from the
 sensor.
 """
+
 
 def create_monitoring_event(uid: str, humidity: int, temperature: float):
     """A factory method to create a monitoring event with the current time
@@ -56,14 +55,10 @@ class MonitoringAggregator:
         Basically, the aggregator drops events about unknown plants and
         broadcast other events to its listeners.
         """
-        db_storer = database_storer.DatabaseStorer('planteur.db')
-
         while True:
             # Retrieve event
             event = self._queue.get()
             logging.info('%s: processing event %s', self.__class__.__name__, event)
-            db_storer.store_monitoring(event)
-            # FIXME do storage in a listener?
 
             # Check if this plant is in the list
             known = False
@@ -75,7 +70,7 @@ class MonitoringAggregator:
             # Process or drop
             if known:
                 for listener in self.listeners:
-                    listener.process(event)
+                    listener.process_event(event)
             else:
                 logging.error('%s: unknown plant %s', self.__class__.__name__, event.uid)
 
@@ -101,11 +96,16 @@ class StubWiredAdapter:
 
     def _poll_sensors(self):
         """Fake sensor polling."""
+        i = 0
         while True:
             logging.info("%s: polling new value", self.__class__.__name__)
-            event = create_monitoring_event(self.uid, random.randint(0, 100), None)
+            # event = create_monitoring_event(self.uid, random.randint(0, 100), None)
+            event = create_monitoring_event(self.uid, i, None)
+            i += 1
+            if i > 100:
+                i = 0
             self.aggregator.post(event)
-            time.sleep(3)
+            time.sleep(0.3)
 
 
 class NetworkAdapter:

@@ -1,8 +1,8 @@
 """This module provides a class that is able to store data in an SQLite3
 database.
 
-To visualize the data inside an QSLite3 file, you can use SQLiteBrower. See
-http://sqlitebrowser.org/.
+You can use SQLiteBrowser to visualize the data inside an SQLite3 file.
+See http://sqlitebrowser.org/.
 """
 import sqlite3
 
@@ -18,7 +18,7 @@ class DatabaseStorer:
 
         :param name: the name of the SQLite file
         """
-        self.conn = sqlite3.connect(name)
+        self.conn = sqlite3.connect(name, check_same_thread=False)
 
         cursor = self.conn.cursor()
         cursor.execute('''
@@ -29,20 +29,44 @@ class DatabaseStorer:
                 temperature INTEGER
             )
             ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS watering(
+                timestamp DATE,
+                uid TEXT
+            )
+            ''')
+
         self.conn.commit()
 
     def __del__(self):
         """Delete object and cleanup."""
         self.conn.close()
 
-    def store_monitoring(self, event):
-        """ Store a monitoring event in the database.
+    def process_event(self, event):
+        """ Store a monitoring event into the database.
 
-        :param event: the monitoring event to store"""
+        :param event: the monitoring event to store
+        :type event: monitoring.MonitoringEvent
+        """
         cursor = self.conn.cursor()
 
         cursor.execute('''
         INSERT INTO monitoring(timestamp, uid, humidity, temperature) VALUES(?, ?, ?, ?)
         ''', (event.timestamp, event.uid, event.humidity, event.temperature))
+
+        self.conn.commit()
+
+    def process_demand(self, demand):
+        """Store a watering demand into the database.
+
+        :param event: the watering demand to store
+        :type event: watering.WateringDemand
+        """
+        cursor = self.conn.cursor()
+
+        cursor.execute('''
+        INSERT INTO watering(timestamp, uid) VALUES(?, ?)
+        ''', (demand.timestamp, demand.uid))
 
         self.conn.commit()

@@ -1,0 +1,18 @@
+How to validate
+
+Run application.
+Let it run for some time.
+Kill it.
+
+Execute the following SQL request in sqlitebrowser:
+
+select count(*)
+from monitoring
+where uid = 'pgt_tomatoes_network'	and ( (humidity <= 60 and temperature >= 25) or (humidity <= 50) )
+
+union
+
+select count(*)
+from watering
+
+It should be the same number twice.

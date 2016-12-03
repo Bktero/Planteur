@@ -6,7 +6,6 @@ import threading
 import time
 from collections import namedtuple
 
-import database_storer
 import monitoring
 import plant
 
@@ -23,20 +22,21 @@ def create_watering_demand(uid: str):
     """
     return WateringDemand(time.time(), uid)
 
-# TODO watering planner for planned-watering plants
+# TODO create watering planner for planned-watering plants
+
 
 class Sprinkler:
     """A Sprinkler is responsible for watering plants."""
     def __init__(self, plants):
+        self.listeners = list()
         self._queue = queue.Queue()
-        # TODO create list of listeners
-        self.plants = plants
+        self._plants = plants
 
     def post(self, demand: WateringDemand):
         """Post a demand that the sprinkler will then consume."""
         self._queue.put(demand)
 
-    def process(self, event):
+    def process_event(self, event):
         """Process a monitoring event and decide if a plant needs to be watered.
 
         This method is meant to turn Sprinkler into a listener for
@@ -47,7 +47,7 @@ class Sprinkler:
         """
         # Find the plant in the list
         plant_ = None
-        for p in self.plants:
+        for p in self._plants:
             if p.uid == event.uid and p.watering == plant.WateringMethod.conditional:
                 plant_ = p
                 break
@@ -65,21 +65,23 @@ class Sprinkler:
                     demand = create_watering_demand(plant_.uid)
                     self.post(demand)
 
-
     def start(self):
         """Start the sprinkler's thread and start processing demands."""
         aggregator_thread = threading.Thread(target=self._process_demands, name=self.__class__.__name__ + 'thread')
         aggregator_thread.start()
 
     def _process_demands(self):
-        # FIXME do storage in a listener?
+        """Get demands from the queue and process them.
 
+        For the moment, the sprinkler just broadcasts to its listeners.
+        """
         while True:
             # Retrieve demand
             demand = self._queue.get()
             logging.info('%s: demand %s', self.__class__.__name__, demand)
 
-            # TODO store to DB
+            for listener in self.listeners:
+                listener.process_demand(demand)
 
             # TODO water plants
 
