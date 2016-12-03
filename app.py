@@ -29,12 +29,14 @@ def planteur(config_pathname, plant_pathname):
     # Load configuration
     logging.info('Loading configuration...')
     with open(config_pathname) as file:
+        # Log level
         json_dict = json.load(file)
-        parameter = json_dict['category']['param']
-        print(json_dict)
-        print(parameter)
-        parameter = json_dict['another_category']['other_param']
-        print(parameter)
+        level_str = json_dict['log']['level']
+
+        level = getattr(logging, level_str.upper())
+
+        logging.info('Changing log level to %s', level)
+        logging.getLogger().setLevel(level)
 
     # Load plants
     logging.info('Logging plants...')
@@ -100,7 +102,7 @@ def stub_plant_activity():
     while True:
         for plant_ in plants:
             plant_.send_data()
-            time.sleep(0.2)
+            time.sleep(1)
 
 if __name__ == '__main__':
     # Configure logging

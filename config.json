@@ -1,8 +1,5 @@
 {
-  "category": {
-    "param": "value"
-  },
-  "another_category": {
-    "other_param": "value_of_other_param"
+  "log": {
+    "level": "INFO"
   }
 }

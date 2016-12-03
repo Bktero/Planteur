@@ -105,7 +105,7 @@ class StubWiredAdapter:
             if i > 100:
                 i = 0
             self.aggregator.post(event)
-            time.sleep(0.3)
+            time.sleep(1.2)
 
 
 class NetworkAdapter:
