@@ -6,17 +6,16 @@ See http://sqlitebrowser.org/.
 """
 import sqlite3
 
-import monitoring
-
 __author__ = 'pgradot'
 
 
 class DatabaseStorer:
     """An object able to store data in a database."""
-    def __init__(self, name:str):
+    def __init__(self, name):
         """Create a new instance.
 
         :param name: the name of the SQLite file
+        :type name: str
         """
         self.conn = sqlite3.connect(name, check_same_thread=False)
 

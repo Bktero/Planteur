@@ -1,2 +1,2 @@
 #!/bin/bash
-ls *.py | xargs -I file pylint file -rn
+ls *.py | xargs -I pyfile pylint --rcfile="pylint.rc" -rn pyfile --disable="line-too-long"

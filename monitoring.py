@@ -62,8 +62,8 @@ class MonitoringAggregator:
 
             # Check if this plant is in the list
             known = False
-            for p in self._plants:
-                if p.uid == event.uid:
+            for plant_ in self._plants:
+                if plant_.uid == event.uid:
                     known = True
                     break
 

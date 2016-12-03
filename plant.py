@@ -48,39 +48,31 @@ class Plant:
         return '{}: uid={}, name={}, connection={} watering={}'.format(self.__class__.__name__, self.uid, self.name, self.connection, self.watering)
 
 
-class PlantLoader:
-    """A PlantLoader loads a JSON description file and creates the corresponding
-    set of plants.
+def load_plants_from_json(pathname):
+    """Loads the set of plants described in a JSON file.
+
+    Open the JSON description file represented by the pathname.
+    Create a python object for each described plant.
+
+    :param pathname: the pathname to the description file
+    :type pathname: str
+
+    :return: a list of plants
     """
-    def __init__(self, pathname):
-        """Create a new loader.
+    plants = list()
 
-        :param pathname: the pathname to the description file
-        :type pathname: str
-        """
-        self.pathname = pathname
+    with open(pathname) as file:
+        json_dict = json.load(file)
+        for plant_dict in json_dict['plants']:
+            # Extract data
+            uid = plant_dict['uid']
+            name = plant_dict['name']
+            connection = ConnectionType[plant_dict['connection']]
+            watering = WateringMethod[plant_dict['watering']]
 
-    def __str__(self):
-        return '{}: pathname={}'.format(self.__class__.__name__ , self.pathname)
+            # Create plant and add it to the list of plants
+            plant = Plant(uid, name, connection, watering)
+            logging.debug('Loading plant: %s', plant)
+            plants.append(plant)
 
-    def load(self):
-        """Load the plants.
-
-        Open the JSON description file represented by the pathname.
-        Create a python object for each described plant.
-
-        :return: the list of these objects
-        """
-        plants = []
-        with open(self.pathname) as file:
-            json_dict = json.load(file)
-            for index, plant_dict in enumerate(json_dict['plants']):
-                uid = plant_dict['uid']
-                name = plant_dict['name']
-                connection = ConnectionType[plant_dict['connection']]
-                watering = WateringMethod[plant_dict['watering']]
-                plant = Plant(uid, name, connection, watering)
-                logging.debug('Loading plant: %s', plant)
-                plants.append(plant)
-
-        return plants
+    return plants

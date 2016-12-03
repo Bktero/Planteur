@@ -6,7 +6,6 @@ import threading
 import time
 from collections import namedtuple
 
-import monitoring
 import plant
 
 __author__ = 'pgradot'
@@ -47,9 +46,9 @@ class Sprinkler:
         """
         # Find the plant in the list
         plant_ = None
-        for p in self._plants:
-            if p.uid == event.uid and p.watering == plant.WateringMethod.conditional:
-                plant_ = p
+        for plant_ in self._plants:
+            if plant_.uid == event.uid and plant_.watering == plant.WateringMethod.conditional:
+                plant_ = plant_
                 break
 
         # Process event if the plant has conditional watering method

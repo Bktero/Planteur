@@ -38,8 +38,7 @@ def planteur(config_pathname, plant_pathname):
 
     # Load plants
     logging.info('Logging plants...')
-    loader = plant.PlantLoader(plant_pathname)
-    plants = loader.load()
+    plants = plant.load_plants_from_json(plant_pathname)
 
     # Create sprinkler, monitoring aggregator and database storer
     storer = database.DatabaseStorer('planteur.db')
@@ -57,31 +56,30 @@ def planteur(config_pathname, plant_pathname):
     sprinkler.start()
 
     # Start network adapter if there is at least one network plant
-    for p in plants:
-        if p.connection is plant.ConnectionType.network:
+    for plant_ in plants:
+        if plant_.connection is plant.ConnectionType.network:
             network_adapter = monitoring.NetworkAdapter(aggregator, UDP_IPADDR, UDP_PORT)
             network_adapter.start()
             break
 
     # Start a wired adapter for each wired plant
-    for p in plants:
-        if p.connection is plant.ConnectionType.wired:
-            wired_adapter = monitoring.StubWiredAdapter(aggregator, p.uid)
+    for plant_ in plants:
+        if plant_.connection is plant.ConnectionType.wired:
+            wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
             wired_adapter.start()
 
     # TODO start zigbee adapters
 
 
-
 class StubNetworkPlant(object):
-
+    """A stub plant that communicate thought network with UPD."""
     def __init__(self, uid: str):
         self.uid = uid
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
         self.humidity = 0
 
-    def emit(self):
+    def send_data(self):
+        """ Send a UDP datagram with generate stub data."""
         self.humidity += 1
         if self.humidity > 100:
             self.humidity = 0
@@ -93,6 +91,17 @@ class StubNetworkPlant(object):
         self.sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
 
 
+def stub_plant_activity():
+    """Simulate plant activity through network."""
+    tomatoes = StubNetworkPlant('pgt_tomatoes_network')
+    ficus = StubNetworkPlant('pgt_ficus_network')
+    plants = [tomatoes, ficus]
+
+    while True:
+        for plant_ in plants:
+            plant_.send_data()
+            time.sleep(0.2)
+
 if __name__ == '__main__':
     # Configure logging
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -101,12 +110,5 @@ if __name__ == '__main__':
     planteur('config.json', 'plants.json')
 
 
-    # Stub network plants
-    tomatoes = StubNetworkPlant('pgt_tomatoes_network')
-    ficus = StubNetworkPlant('pgt_ficus_network')
-    plants = [tomatoes, ficus]
-
-    while True:
-        for p in plants:
-            p.emit()
-            time.sleep(0.2)
+    # Simulate plant activity
+    stub_plant_activity()
