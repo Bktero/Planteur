@@ -145,5 +145,5 @@ class NetworkAdapter:
             message_as_string = bytes.decode(message)
             logging.info("%s: received [%s] from %s", self.__class__.__name__, message_as_string, address)
             json_dict = json.loads(message_as_string)
-            event = create_monitoring_event(json_dict['uid'], json_dict['humidity'], json_dict['temperature'])
+            event = create_monitoring_event(json_dict['plant']['uid'], json_dict['plant']['humidity'], json_dict['plant']['temperature'])
             self.aggregator.post(event)

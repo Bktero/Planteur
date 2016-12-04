@@ -88,7 +88,14 @@ class StubNetworkPlant(object):
 
         # self.humidity = random.randint(0, 100)
 
-        message = json.dumps({'uid': self.uid, 'humidity': self.humidity, 'temperature': random.randint(10, 30)})
+        message = json.dumps({'plant':
+                                  {
+                                      'uid': self.uid,
+                                      'humidity': self.humidity,
+                                      'temperature': random.randint(10, 30)
+                                  }
+                              })
+
         message_as_bytes = message.encode()
         self.sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
 
