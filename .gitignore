@@ -1,6 +1,6 @@
 # PyCharm's file for workspace preferences
 # See: https://www.jetbrains.com/help/pycharm/2016.1/project.html
-.idea/workspace.xml
+planteur/.idea/workspace.xml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -64,3 +64,8 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+
+#-----------------------------------------------------------------------------
+# Custom files for Planteur project
+planteur/planteur.db
