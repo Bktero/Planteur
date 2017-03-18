@@ -2,6 +2,7 @@
 import json
 import logging
 import random
+import serial
 import socket
 import time
 
@@ -14,6 +15,8 @@ __author__ = 'pgradot'
 
 UDP_IPADDR = 'localhost'
 UDP_PORT = 14246
+
+XBEE_TTYUSB = "/dev/ttyUSB1"
 
 
 def planteur(config_pathname, plant_pathname):
@@ -68,9 +71,19 @@ def planteur(config_pathname, plant_pathname):
     for plant_ in plants:
         if plant_.connection is plant.ConnectionType.wired:
             wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
-            wired_adapter.start()
+            #wired_adapter.start()
 
-    # TODO start zigbee adapters
+    # Start an XBee adapter
+    xbee_uids = dict()
+    for plant_ in plants:
+        if plant_.connection is plant.ConnectionType.xbee:
+            xbee_uids[plant_.xbee_id] = plant_.uid
+
+    if len(xbee_uids) != 0:
+        ser = serial.Serial(XBEE_TTYUSB)
+        logging.debug('XBee ID <==> UID: %s', xbee_uids)
+        xbee_adapter = monitoring.XBeeAdapter(aggregator, ser, xbee_uids)
+        xbee_adapter.start()
 
 
 class StubNetworkPlant(object):
@@ -120,4 +133,4 @@ if __name__ == '__main__':
 
 
     # Simulate plant activity
-    stub_plant_activity()
+    #stub_plant_activity()
