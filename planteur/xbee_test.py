@@ -24,11 +24,12 @@ def get_frame(ser):
 
 
 # Open serial port to XBee module
-ser = serial.Serial('/dev/ttyUSB0')
+ser = serial.Serial('/dev/ttyUSB1')
 print(ser.name)
 
-# ser.write(b'hello this is python speaking\n')
+ser.write(b'hello this is python speaking\n')
 
+"""
 # Read incoming data
 f = get_frame(ser)
 print(f)
@@ -38,3 +39,4 @@ print(f)
 
 # Close connection
 ser.close()
+"""

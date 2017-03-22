@@ -16,7 +16,7 @@ __author__ = 'pgradot'
 UDP_IPADDR = 'localhost'
 UDP_PORT = 14246
 
-XBEE_TTYUSB = "/dev/ttyUSB1"
+XBEE_TTYUSB = "/dev/ttyUSB0"
 
 
 def planteur(config_pathname, plant_pathname):
