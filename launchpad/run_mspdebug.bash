@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sudo mspdebug rf2500 gdb
+mspdebug rf2500 gdb
