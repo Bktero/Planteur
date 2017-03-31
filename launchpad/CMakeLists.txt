@@ -14,6 +14,7 @@ set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${MSP430G2231_LINKER_FLAGS}
 
 # Create executable
 add_executable(a.out
+				button.cpp button.hpp
 				delay.hpp
 				led.cpp led.hpp
 				main.cpp

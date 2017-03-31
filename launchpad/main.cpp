@@ -1,52 +1,18 @@
 #include <msp430.h>
 
+#include "button.hpp"
 #include "delay.hpp"
 #include "led.hpp"
 #include "uart.hpp"
 
-#define	BUTTON_BIT		BIT3
-
 // TODO read https://indiantinker.wordpress.com/2012/12/13/tutorial-using-the-internal-temperature-sensor-on-a-msp430/
-
-class Counter
-{
-public:
-    Counter() :
-            value_m(MIN)
-    {
-    }
-
-    void count()
-    {
-        value_m += MIN;
-        if (value_m > MAX)
-        {
-            value_m = MIN;
-        }
-    }
-
-    unsigned int getValue() const
-    {
-        return value_m;
-    }
-
-private:
-    enum
-    {
-        MAX = 500, MIN = 50
-    };
-    unsigned int value_m;
-};
 
 bool led_paused = true;
 
-void __interrupt_vec(PORT1_VECTOR) Port_1(void)
+void handle_button()
 {
     // Change mode
     led_paused = !led_paused;
-
-    // Clear interrupt flag
-    P1IFG &= ~BUTTON_BIT;
 
     // Send message through UART
     const uint8_t b = '0' + led_paused;
@@ -57,10 +23,6 @@ int main(void)
 {
     // Stop watchdog timer
     WDTCTL = WDTPW + WDTHOLD;
-
-    // Enable interrupt for button and clear flag
-    P1IE |= BUTTON_BIT;
-    P1IFG &= ~BUTTON_BIT;
 
     // Configure clock and UART
     // TODO verify this code taken from https://www.embeddedrelated.com/showarticle/420.php because TI's sample code do something else
@@ -78,9 +40,11 @@ int main(void)
     UART::Uart0.send("MSP430 starts");
     UART::Uart0.send('\n');
 
-    // Infinite loop
-
+    // ============================================================
+    // Infinite loops
     UART::Uart0.send("Send characters, the MSP430 will echo them\n");
+    UART::Uart0.send("'z' will break the loop\n");
+
     while (1)
     {
         uint8_t data = UART::Uart0.receive();
@@ -88,6 +52,7 @@ int main(void)
         if (data == 'z')
         {
             LED::Red.off();
+            break;
         }
         else
         {
@@ -100,16 +65,18 @@ int main(void)
     }
 
 
-//    UART::Uart0.sendAsync("Press the button so that the green LED toggles slowly\n");
-//
-//    while (1)
-//    {
-//        if (!led_paused)
-//        {
-//            Delay::millis(500);
-//            LED::Green.toogle();
-//        }
-//    }
+    UART::Uart0.sendAsync("Press the button so that the green LED blinks slowly\n");
+    UART::Uart0.sendAsync("Press again to stop blinking\n");
+    Button::unique.setCallback(handle_button);
+
+    while (1)
+    {
+        if (!led_paused)
+        {
+            Delay::millis(500);
+            LED::Green.toogle();
+        }
+    }
 
     while (1)
         ;
