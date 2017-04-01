@@ -24,7 +24,7 @@ int main(void)
     // Stop watchdog timer
     WDTCTL = WDTPW + WDTHOLD;
 
-    // Configure clock and UART
+    // Configure clock to be 1 MHz
     // TODO verify this code taken from https://www.embeddedrelated.com/showarticle/420.php because TI's sample code do something else
     // Select lowest DCOx and MODx setting
     DCOCTL = 0;
@@ -63,7 +63,6 @@ int main(void)
         UART::Uart0.send(data);
         UART::Uart0.send((uint8_t) '\n');
     }
-
 
     UART::Uart0.sendAsync("Press the button so that the green LED blinks slowly\n");
     UART::Uart0.sendAsync("Press again to stop blinking\n");

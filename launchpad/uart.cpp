@@ -85,41 +85,98 @@ UART::UART() :
         count_m(0),
         sending_m(false)
 {
-    // TI's documentation:  slau144j
-    // section15.3.1
-
-    // Configure UART
-    // The baudrate configuration depends on the previous clock configuration
-    // FIXME get clock freq to adjust baudrate
-    // Note: since UART instance is created statically at global scope, then system clock has not been set in main
+    // When MCU resets, UCSWRST is set, keeping USCI in reset condition (see slau144j section 15.3.1)
 
     // TODO verify this code taken from https://www.embeddedrelated.com/showarticle/420.php
     P1SEL |= UART_RX_BIT + UART_TX_BIT; // P1.1 = RXD, P1.2=TXD
     P1SEL2 |= UART_RX_BIT + UART_TX_BIT; // P1.1 = RXD, P1.2=TXD
 
-    // When MCU resets, UCSWRST is set, keeping USCI in reset condition (slau144j 15.3.1)
-
-    UCA0CTL1 |= UCSSEL_2; // SMCLK
-    UCA0BR0 = 0x08; // 1MHz 115200
-    UCA0BR1 = 0x00; // 1MHz 115200
-    UCA0MCTL = UCBRS2 + UCBRS0; // Modulation UCBRSx = 5
+    // Select SMCLK as clock source
+    UCA0CTL1 |= UCSSEL_2;
+    // FIXME clock is assumed to be 1 MHz in setBaudrate()
 
     // Release USCI_A0 for operation
     UCA0CTL1 &= ~UCSWRST;
 
-    // Enable USCI_A0 RX interrupt (slau144j 15.3.1)
+    // Enable USCI_A0 RX interrupt
     //UC0IE |= UCA0RXIE;
 
     // Disable USCI_A0 TX interrupt
     //UC0IE &= ~UCA0TXIE;
+
+    setBaudrate(Baudrate::_115200);
 }
 
-void __interrupt_vec(USCIAB0TX_VECTOR) UART0_TX_ISR(void)
+void UART::setBaudrate(Baudrate baudrate)
+{
+    /*
+     * From slau144J
+     *
+     *  15.3.10 Setting a Baud Rate
+     * For a given BRCLK clock source, the baud rate used determines the required division factor N:
+     * N= f_BRCLK / Baud rate
+     *
+     *  15.3.10.1 Low-Frequency Baud Rate Mode Setting
+     * In the low-frequency mode, the integer portion of the divisor is realized by the prescaler:
+     * UCBRx = INT(N)
+     * and the fractional portion is realized by the modulator with the following nominal formula:
+     * UCBRSx = round( ( N – INT(N) ) × 8 )
+     *
+     *  15.4.4 UCAxBR1, USCI_Ax Baud Rate Control Register 1
+     * The 16-bit value of (UCAxBR0 + UCAxBR1 × 256) forms the prescaler value.
+     */
+
+    switch (baudrate)
+    {
+    // FIXME We assume that SMCLK is 1 MHz
+    case Baudrate::_9600:
+        // N = 104.2, UCBRSx = 1
+        UCA0BR0 = 104;
+        UCA0BR1 = 0;
+        UCA0MCTL = UCBRS0;
+        break;
+
+    case Baudrate::_19200:
+        // N = 52.08, UCBRSx = 1
+        UCA0BR0 = 52;
+        UCA0BR1 = 0;
+        UCA0MCTL = UCBRS0;
+        break;
+
+    case Baudrate::_38400:
+        // N = 26.04, UCBRSx = 0
+        UCA0BR0 = 26;
+        UCA0BR1 = 0;
+        UCA0MCTL = 0;
+        break;
+
+    case Baudrate::_57600:
+        // N = 17.36, UCBRSx = 3
+        UCA0BR0 = 17;
+        UCA0BR1 = 0;
+        UCA0MCTL = UCBRS1 + UCBRS0;
+        break;
+
+    case Baudrate::_115200:
+        // N = 8.68, UCBRSx = 5
+        UCA0BR0 = 8;
+        UCA0BR1 = 0;
+        UCA0MCTL = UCBRS2 + UCBRS0;
+        break;
+
+    default:
+        break;
+    }
+}
+
+void __interrupt_vec(USCIAB0TX_VECTOR)
+UART0_TX_ISR(void)
 {
     UART::Uart0.handleTxIsr();
 }
 
-void __interrupt_vec(USCIAB0RX_VECTOR) USCI0RX_ISR(void)
+void __interrupt_vec(USCIAB0RX_VECTOR)
+USCI0RX_ISR(void)
 {
 //    P1OUT |= LED_RED_BIT;
 //    if (UCA0RXBUF == 'a') // 'a' received?
