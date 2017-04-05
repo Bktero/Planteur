@@ -71,7 +71,7 @@ def planteur(config_pathname, plant_pathname):
     for plant_ in plants:
         if plant_.connection is plant.ConnectionType.wired:
             wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
-            #wired_adapter.start()
+            wired_adapter.start()
 
     # Start an XBee adapter
     xbee_uids = dict()
@@ -133,4 +133,4 @@ if __name__ == '__main__':
 
 
     # Simulate plant activity
-    #stub_plant_activity()
+    stub_plant_activity()
