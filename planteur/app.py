@@ -42,7 +42,7 @@ def planteur(config_pathname, plant_pathname):
         logging.getLogger().setLevel(level)
 
     # Load plants
-    logging.info('Logging plants...')
+    logging.info('Loading plants...')
     plants = plant.load_plants_from_json(plant_pathname)
 
     # Create sprinkler, monitoring aggregator and database storer
@@ -84,6 +84,9 @@ def planteur(config_pathname, plant_pathname):
         logging.debug('XBee ID <==> UID: %s', xbee_uids)
         xbee_adapter = monitoring.XBeeAdapter(aggregator, ser, xbee_uids)
         xbee_adapter.start()
+
+    # Startup complete
+    logging.debug("Application startup is complete")
 
 
 class StubNetworkPlant(object):

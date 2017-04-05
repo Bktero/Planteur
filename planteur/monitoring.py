@@ -52,6 +52,7 @@ class MonitoringAggregator:
         """Start the aggregator's thread and start processing events."""
         aggregator_thread = threading.Thread(target=self._process_events,
                                              name=self.__class__.__name__ + 'thread')
+        logging.debug('%s: starts', self.__class__.__name__)
         aggregator_thread.start()
 
     def _process_events(self):
