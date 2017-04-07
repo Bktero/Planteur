@@ -1,4 +1,11 @@
 {
   "plants": [
+    {
+      "uid": "xbee_palm",
+      "name": "Palm from Ikea, that is in the kitchen",
+      "connection": "xbee",
+      "watering": "conditional",
+      "xbee_id": "1"
+    }
   ]
 }
