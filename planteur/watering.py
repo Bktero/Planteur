@@ -10,7 +10,6 @@ import plant
 
 __author__ = 'pgradot'
 
-
 WateringDemand = namedtuple('WateringDemand', ['timestamp', 'uid'])
 '''Represent a watering demand.'''
 
@@ -21,11 +20,13 @@ def create_watering_demand(uid: str):
     """
     return WateringDemand(time.time(), uid)
 
+
 # TODO create watering planner for planned-watering plants
 
 
 class Sprinkler:
     """A Sprinkler is responsible for watering plants."""
+
     def __init__(self, plants):
         self.listeners = list()
         self._queue = queue.Queue()

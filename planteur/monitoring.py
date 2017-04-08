@@ -17,8 +17,7 @@ from enum import Enum
 
 __author__ = 'pgradot'
 
-MonitoringEvent = namedtuple('MonitoringEvent',
-                             ['timestamp', 'uid', 'humidity', 'temperature'])
+MonitoringEvent = namedtuple('MonitoringEvent', ['timestamp', 'uid', 'humidity', 'temperature'])
 """When a monitoring event occurs, either because a plant has sent some data
 or because Planteur has decided to read a sensor, a monitoring event is created. It
 contains the time of generation, the UID of the plant, and the data from the
@@ -50,8 +49,7 @@ class MonitoringAggregator:
 
     def start(self):
         """Start the aggregator's thread and start processing events."""
-        aggregator_thread = threading.Thread(target=self._process_events,
-                                             name=self.__class__.__name__ + 'thread')
+        aggregator_thread = threading.Thread(target=self._process_events, name=self.__class__.__name__ + 'thread')
         logging.debug('%s: starts', self.__class__.__name__)
         aggregator_thread.start()
 
@@ -64,8 +62,7 @@ class MonitoringAggregator:
         while True:
             # Retrieve event
             event = self._queue.get()
-            logging.info('%s: processing event %s', self.__class__.__name__,
-                         event)
+            logging.info('%s: processing event %s', self.__class__.__name__, event)
 
             # Check if this plant is in the list
             known = False
@@ -79,8 +76,7 @@ class MonitoringAggregator:
                 for listener in self.listeners:
                     listener.process_event(event)
             else:
-                logging.error('%s: unknown plant %s', self.__class__.__name__,
-                              event.uid)
+                logging.error('%s: unknown plant %s', self.__class__.__name__, event.uid)
 
             # Release queue
             self._queue.task_done()
@@ -100,9 +96,8 @@ class StubWiredAdapter:
 
     def start(self):
         """Start the thread for this stub adapter."""
-        wired_thread = threading.Thread(target=self._poll_sensors,
-                                        name="{}: {} thread".format(
-                                            self.__class__.__name__, self.uid))
+        wired_thread = threading.Thread(target=self._poll_sensors, name="{}: {} thread"
+                                        .format(self.__class__.__name__, self.uid))
         wired_thread.start()
 
     def _poll_sensors(self):
@@ -145,24 +140,22 @@ class NetworkAdapter:
 
     def start(self):
         """Start the server thread."""
-        server_thread = threading.Thread(target=self._run_server,
-                                         name="{} on {}:{} server thread".format(
-                                             self.__class__.__name__,
-                                             self.ipaddr, self.port))
+        server_thread = threading.Thread(target=self._run_server, name="{} on {}:{} server thread"
+                                         .format(self.__class__.__name__, self.ipaddr, self.port))
         server_thread.start()
 
     def _run_server(self):
         """Create UDP server, receive and process datagrams."""
         self.sock.bind((self.ipaddr, self.port))
-        logging.info("%s: waiting for datagrams on %s:%d",
-                     self.__class__.__name__, self.ipaddr, self.port)
+        logging.info("%s: waiting for datagrams on %s:%d", self.__class__.__name__, self.ipaddr, self.port)
+
         while True:
-            message, address = self.sock.recvfrom(2048)
-            # TODO adjust buffer size (for now, it is 2048 bytes)
-            message_as_string = bytes.decode(message)
-            logging.info("%s: received [%s] from %s", self.__class__.__name__,
-                         message_as_string, address)
-            json_dict = json.loads(message_as_string)
+            message, address = self.sock.recvfrom(
+                2048)  # TODO adjust buffer size (for now, it is 2048 bytes)
+            message_str = bytes.decode(message)
+            logging.info("%s: received [%s] from %s", self.__class__.__name__, message_str, address)
+
+            json_dict = json.loads(message_str)
             event = create_monitoring_event(json_dict['plant']['uid'],
                                             json_dict['plant']['humidity'],
                                             json_dict['plant']['temperature'])
@@ -196,16 +189,14 @@ class XBeeAdapter:
 
     def start(self):
         """Start the server thread."""
-        server_thread = threading.Thread(target=self._run_server,
-                                         name="{} on {} server thread".format(
-                                             self.__class__.__name__,
-                                             self.ser.name))
+        server_thread = threading.Thread(target=self._run_server, name="{} on {} server thread"
+                                         .format(self.__class__.__name__, self.ser.name))
         server_thread.start()
 
     def _get_int(self):
         b = self.ser.read()
         i = int.from_bytes(b, byteorder='big')
-        #print(i)
+        # print(i)
         return i
 
     def _get_frame(self):

@@ -11,8 +11,11 @@ __author__ = 'pgradot'
 
 class DatabaseStorer:
     """An object able to store data in a database."""
+
     def __init__(self, name):
         """Create a new instance.
+
+        Tables are created if they don't exist.
 
         :param name: the name of the SQLite file
         :type name: str
@@ -20,6 +23,7 @@ class DatabaseStorer:
         self.conn = sqlite3.connect(name, check_same_thread=False)
 
         cursor = self.conn.cursor()
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS monitoring(
                 timestamp DATE,

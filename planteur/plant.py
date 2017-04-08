@@ -27,7 +27,8 @@ class WateringMethod(Enum):
 
 class Plant:
     """A Plant is python object that represent a plant from the real world."""
-    def __init__(self, uid: str, name: str, connection: ConnectionType,watering: WateringMethod):
+
+    def __init__(self, uid: str, name: str, connection: ConnectionType, watering: WateringMethod):
         """Create a new plant.
 
         :param uid: a unique identifier
@@ -41,7 +42,8 @@ class Plant:
         self.watering = watering
 
     def __str__(self):
-        return '{}: uid={}, name={}, connection={} watering={}'.format(self.__class__.__name__, self.uid, self.name, self.connection, self.watering)
+        return '{}: uid={}, name={}, connection={} watering={}' \
+            .format(self.__class__.__name__, self.uid, self.name, self.connection, self.watering)
 
 
 def load_plants_from_json(pathname: str):
