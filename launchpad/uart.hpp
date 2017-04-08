@@ -2,8 +2,8 @@
 #define UART_HPP
 
 #include <msp430.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 class UART
 {

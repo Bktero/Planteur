@@ -15,10 +15,12 @@ set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${MSP430G2231_LINKER_FLAGS}
 # Create executable
 add_executable(a.out
 				button.cpp button.hpp
+				demo.cpp
 				delay.hpp
 				led.cpp led.hpp
 				main.cpp
-				uart.cpp uart.hpp)
+				uart.cpp uart.hpp
+				xbee.cpp xbee.hpp)
 
 # Add a post-build action to print the size of the executable
 add_custom_command(TARGET a.out POST_BUILD COMMAND msp430-elf-size a.out)

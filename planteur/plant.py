@@ -72,6 +72,6 @@ def load_plants_from_json(pathname: str):
 
             # Add special fields depending on the type of plant
             if plant.connection == ConnectionType.xbee:
-                plant.xbee_id = plant_dict['xbee_id']
+                plant.xbee_id = int(plant_dict['xbee_id'])
 
     return plants

@@ -183,16 +183,16 @@ class XBeeAdapter:
         plant = 1
 
     def __init__(self, aggregator: MonitoringAggregator, ser: serial,
-                 uids: dict):
+                 uid_dict: dict):
         """Create new XBeeAdapter.
 
         :param aggregator: the aggregator
         :param ser: the serial port to which the XBee module is connected
-        :param uids: a dictionary with XBee ID as keys and plant UIDs as values
+        :param uid_dict: a dictionary with XBee ID as keys (int) and plant UIDs (str) as values
         """
         self.aggregator = aggregator
         self.ser = ser
-        self.uids = uids
+        self.uid_dict = uid_dict
 
     def start(self):
         """Start the server thread."""
@@ -213,29 +213,31 @@ class XBeeAdapter:
         dest = self._get_int()
         length = self._get_int()
         payload = list()
+
         while length > 0:
             d = self._get_int()
             payload.append(d)
             length -= 1
+
         return self.xbee_frame(src, dest, payload)
 
     def _run_server(self):
         """Receive and process XBee frames."""
-        logging.info("%s: waiting for frames on %s",
-                     self.__class__.__name__, self.ser.name)
+        logging.info("%s: waiting for frames on %s", self.__class__.__name__, self.ser.name)
+
         while True:
             frame = self._get_frame()
 
-            if frame.dest == 0 and frame.payload[0] == self.FrameType.plant.value: # Cannot compare directly an int and an enum
-                logging.info("%s: received [%s]",
-                             self.__class__.__name__, frame)
-                uid = self.uids[str(frame.src)]
+            if frame.dest == 0 and frame.src in self.uid_dict and frame.payload[0] == self.FrameType.plant.value:
+                # This frame contains a plant's monitoring event
+                logging.debug("%s: frame received [%s]", self.__class__.__name__, frame)
+
+                uid = self.uid_dict[frame.src]
                 humidity = frame.payload[1]
                 temperature = frame.payload[2]
                 event = create_monitoring_event(uid, humidity, temperature)
+
                 self.aggregator.post(event)
             else:
-                # The gateway is not the destination of this frame
-                # or the type of frame is unknown
-                logging.debug("%s: ignore frame %s",
-                              self.__class__.__name__, frame)
+                # The gateway is not the destination of this frame or the type of frame is unknown
+                logging.warning("%s: frame ignored [%s]", self.__class__.__name__, frame)
