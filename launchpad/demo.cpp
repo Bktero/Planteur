@@ -1,6 +1,6 @@
 #include "button.hpp"
-#include "delay.hpp"
 #include "led.hpp"
+#include "system.hpp"
 #include "uart.hpp"
 
 static bool led_paused = true;
@@ -15,7 +15,7 @@ static void handle_button()
     UART::Uart0.send(b);
 }
 
-void demo()
+int main()
 {
     UART::Uart0.send("MSP430 starts");
     UART::Uart0.send('\n');

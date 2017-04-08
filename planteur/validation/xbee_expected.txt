@@ -1,0 +1,4 @@
+xbee_palm|70|30
+xbee_palm|49|24
+xbee_palm|55|25
+2
