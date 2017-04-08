@@ -170,7 +170,7 @@ class XBeeAdapter:
     periodically. This adapter waits from their frame, format in a common format
      and add then to a MonitoringAggregator.
     """
-    xbee_frame = namedtuple('frame', ['src', 'dest', 'payload'])
+    xbee_frame = namedtuple('frame', ['dest', 'src', 'type', 'payload'])
 
     class FrameType(Enum):
         plant = 1
@@ -194,23 +194,26 @@ class XBeeAdapter:
         server_thread.start()
 
     def _get_int(self):
+        """Get the next byte from the serial port as an int."""
         b = self.ser.read()
         i = int.from_bytes(b, byteorder='big')
         # print(i)
         return i
 
     def _get_frame(self):
-        src = self._get_int()
+        """Get the next frame from the serial port."""
         dest = self._get_int()
+        src = self._get_int()
+        type = self._get_int()
+
         length = self._get_int()
         payload = list()
-
         while length > 0:
             d = self._get_int()
             payload.append(d)
             length -= 1
 
-        return self.xbee_frame(src, dest, payload)
+        return self.xbee_frame(dest, src, type, payload)
 
     def _run_server(self):
         """Receive and process XBee frames."""
@@ -219,16 +222,19 @@ class XBeeAdapter:
         while True:
             frame = self._get_frame()
 
-            if frame.dest == 0 and frame.src in self.uid_dict and frame.payload[0] == self.FrameType.plant.value:
+            if frame.dest == 0 and frame.src in self.uid_dict and frame.type == self.FrameType.plant.value:
                 # This frame contains a plant's monitoring event
                 logging.debug("%s: frame received [%s]", self.__class__.__name__, frame)
 
                 uid = self.uid_dict[frame.src]
-                humidity = frame.payload[1]
-                temperature = frame.payload[2]
+                humidity = frame.payload[0]
+                temperature = frame.payload[1]
                 event = create_monitoring_event(uid, humidity, temperature)
 
                 self.aggregator.post(event)
             else:
-                # The gateway is not the destination of this frame or the type of frame is unknown
+                # The frame is rejected because of one of the following reasons:
+                # - the gateway isn't its destination
+                # - the source isn't known
+                # - the frame type is supported
                 logging.warning("%s: frame ignored [%s]", self.__class__.__name__, frame)

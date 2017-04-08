@@ -12,7 +12,8 @@ enum
         GATEWAY_UID = 0, LAUNCHPAD_UID = 1, PLANT_FRAME_TYPE = 1
 };
 
-static uint8_t data[] = { LAUNCHPAD_UID, GATEWAY_UID, 3, PLANT_FRAME_TYPE, 55, 24 };
+static uint8_t data[] =
+    { GATEWAY_UID, LAUNCHPAD_UID, PLANT_FRAME_TYPE, 2 /*Payload length*/, 55/*Humidity*/, 24 /*Temperature*/};
 
 static void button_handler()
 {
