@@ -4,12 +4,12 @@ project(launchpad-msp430)
 
 # Adjust compiler and linker flags
 # -mmcu=msp430g2231 ou # -mmcu=msp430g2553
-set(MSP430G2231_COMPILER_FLAGS "-mmcu=msp430g2553 -Wall -Wextra -O0 -g -std=c++11")
+set(MSP430G2231_COMPILER_FLAGS "-mmcu=msp430g2553 -Wall -Wextra -O0 -g -std=c++11 -ffunction-sections -fdata-sections")
 
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${MSP430G2231_COMPILER_FLAGS})
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${MSP430G2231_COMPILER_FLAGS})
 
-set(MSP430G2231_LINKER_FLAGS "-L/usr/msp430/include/")
+set(MSP430G2231_LINKER_FLAGS "-L/usr/msp430/include/ -Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${MSP430G2231_LINKER_FLAGS})
 
 # Create executable
