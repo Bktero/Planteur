@@ -28,6 +28,11 @@ add_custom_command(TARGET a.out POST_BUILD COMMAND msp430-elf-size a.out)
 add_custom_target(program COMMAND mspdebug rf2500 prog\ a.out DEPENDS a.out)
 
 #-------------------------------------------------------
-# Create test executable for XBee
+# Create target to erase the MCU's flash memory
+add_custom_target(erase COMMAND mspdebug rf2500 erase)
+
+#-------------------------------------------------------
+# Create test executables for XBee
 add_executable(test_xbee.out test_xbee.cpp uart.cpp uart.hpp)
-add_custom_command(TARGET test_xbee.out POST_BUILD COMMAND msp430-elf-size test_xbee.out)
+
+add_executable(test_xbee_intense.out test_xbee_intense.cpp uart.cpp uart.hpp)

@@ -69,7 +69,7 @@ def load_plants_from_json(pathname: str):
 
             # Create plant and add it to the list of plants
             plant = Plant(uid, name, connection, watering)
-            logging.debug('Loading plant: %s', plant)
+            logging.info('Loading plant: %s', plant)
             plants.append(plant)
 
             # Add special fields depending on the type of plant

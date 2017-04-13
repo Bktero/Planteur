@@ -85,7 +85,7 @@ def planteur(config_pathname, plant_pathname):
     for plant_ in plants:
         if plant_.connection is plant.ConnectionType.wired:
             wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
-            #wired_adapter.start()
+            # wired_adapter.start()
 
     # Startup complete
     logging.debug('Application startup is complete')
@@ -123,21 +123,21 @@ def stub_plant_activity():
     """Simulate plant activity through network."""
     tomatoes = StubNetworkPlant('pgt_tomatoes_network')
     ficus = StubNetworkPlant('pgt_ficus_network')
-    plants = [tomatoes, ficus]
+    cactus = StubNetworkPlant('pgt_cactus_network')
+    plants = [tomatoes, ficus, cactus]
 
     while True:
         for plant_ in plants:
             plant_.send_data()
-            time.sleep(1)
+            time.sleep(0.02)
 
 
 if __name__ == '__main__':
     # Configure logging
-    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
-                        level=logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
 
     # Run Planteur
     planteur('config.json', 'plants.json')
 
     # Simulate plant activity
-    #stub_plant_activity()
+    # stub_plant_activity()

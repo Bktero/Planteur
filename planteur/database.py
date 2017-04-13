@@ -5,6 +5,7 @@ You can use SQLiteBrowser to visualize the data inside an SQLite3 file.
 See http://sqlitebrowser.org/.
 """
 import sqlite3
+import threading
 
 __author__ = 'pgradot'
 
@@ -20,6 +21,10 @@ class DatabaseStorer:
         :param name: the name of the SQLite file
         :type name: str
         """
+        self.lock = threading.Lock()
+        # It is not safe to share a connection between several threads: http://stackoverflow.com/a/22739924
+        # This lock is here as a mutex
+
         self.conn = sqlite3.connect(name, check_same_thread=False)
 
         cursor = self.conn.cursor()
@@ -52,6 +57,7 @@ class DatabaseStorer:
         :param event: the monitoring event to store
         :type event: monitoring.MonitoringEvent
         """
+        self.lock.acquire()
         cursor = self.conn.cursor()
 
         cursor.execute('''
@@ -59,6 +65,7 @@ class DatabaseStorer:
         ''', (event.timestamp, event.uid, event.humidity, event.temperature))
 
         self.conn.commit()
+        self.lock.release()
 
     def process_demand(self, demand):
         """Store a watering demand into the database.
@@ -66,6 +73,7 @@ class DatabaseStorer:
         :param event: the watering demand to store
         :type event: watering.WateringDemand
         """
+        self.lock.acquire()
         cursor = self.conn.cursor()
 
         cursor.execute('''
@@ -73,3 +81,4 @@ class DatabaseStorer:
         ''', (demand.timestamp, demand.uid))
 
         self.conn.commit()
+        self.lock.release()
