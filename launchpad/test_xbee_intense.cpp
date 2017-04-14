@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #include <cstdint>
 
 #include "system.hpp"
@@ -19,6 +22,13 @@ static uint8_t humidity[] = { GATEWAY_UID, LAUNCHPAD_UID, PLANT_FRAME_TYPE, PLAN
                 Delay::millis(1);\
                 } while(0)
 
+/**
+ * Functional test for XBee.
+ *
+ * This program will send 2 valid frames 2048 times.
+ *  1. First frame must not trigger a watering event (because H > 50 %)
+ *  2. Second frame must trigger a watering event (because H < 50 %)
+ */
 int main()
 {
     Launchpad::init();

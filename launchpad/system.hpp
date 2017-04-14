@@ -1,11 +1,21 @@
+/**
+ * @file
+ */
 #ifndef DELAY_HPP
 #define DELAY_HPP
 
 #include <msp430.h>
 
+/**
+ * @namespace Delay functions to create delays
+ */
 namespace Delay
 {
-
+/**
+ * Active wait.
+ *
+ * @param millis number of milliseconds to wait
+ */
 inline void millis(unsigned long millis)
 {
     while (millis > 0)
@@ -19,8 +29,20 @@ inline void millis(unsigned long millis)
 
 }
 
+/**
+ * @namespace Launchpad functions for Launchpad board
+ */
 namespace Launchpad
 {
+/**
+ * Initialize the Launchpad board.
+ *
+ *  - Stop watchdog timer
+ *  - Set system clock to 1 MHz
+ *  - Enable interrupts
+ *
+ * @warning calling this function should be the first line of your main program
+ */
 inline void init()
 {
     // Stop watchdog timer

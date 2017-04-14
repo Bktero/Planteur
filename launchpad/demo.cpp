@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #include "button.hpp"
 #include "led.hpp"
 #include "system.hpp"
@@ -15,8 +18,13 @@ static void handle_button()
     UART::Uart0.send(b);
 }
 
+/**
+ * This program demonstrates the Launchpad board capabilities.
+ */
 int main()
 {
+    Launchpad::init();
+
     UART::Uart0.send("MSP430 starts");
     UART::Uart0.send('\n');
 

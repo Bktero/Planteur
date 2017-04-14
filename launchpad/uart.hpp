@@ -5,24 +5,105 @@
 #include <cstddef>
 #include <cstdint>
 
+/**
+ * Abstraction over hardware UART module.
+ */
 class UART
 {
 public:
     static UART Uart0; // USCIA0 module
 
+    /**
+     * Enumeration of the supported baudrates.
+     */
     enum Baudrate
     {
-        _9600, _19200, _38400, _57600, _115200
+        /**
+         * 9600 bauds.
+         */
+        _9600,
+        /**
+         * 19 200 bauds.
+         */
+        _19200,
+        /**
+         * 38 400 bauds.
+         */
+        _38400,
+        /**
+         * 57 600 bauds.
+         */
+        _57600,
+        /**
+         * 115 200 bauds.
+         */
+        _115200
     };
 
+    /**
+     * Receive one byte.
+     *
+     * This is a blocking function.
+     *
+     * @return a received byte
+     */
     uint8_t receive();
 
+    /**
+     * Send one byte.
+     *
+     * This is a blocking function.
+     *
+     * @param data the byte to send
+     */
     void send(const uint8_t data);
+
+    /**
+     * Send a C-string.
+     *
+     * This is a blocking function.
+     *
+     * @param message the string to send
+     */
     void send(const char* message);
+
+    /**
+     * Send bytes.
+     *
+     * This is a blocking function.
+     *
+     * @param data a pointer to the first byte
+     * @param length the number of bytes to send
+     */
     void send(const uint8_t* data, size_t length);
+
+    /**
+     * Send a C-string.
+     *
+     * This is a non-blocking function.
+     * See #sendAsync(const uint8_t*, size_t) for more details.
+     *
+     * @param message
+     */
     void sendAsync(const char* message);
+
+    /**
+     * Send bytes.
+     *
+     * This is a non-blocking function. It will simply triggers the sending
+     * of the first byte and enable the TX interrupt. Following bytes will
+     * be send by the TX ISR.
+     *
+     * @param data a pointer to the first byte
+     * @param length the number of bytes to send
+     */
     void sendAsync(const uint8_t* data, size_t length);
 
+    /**
+     * Set the baudrate of this UART.
+     *
+     * @param baudrate the baudrate
+     */
     void setBaudrate(Baudrate baudrate);
 
     friend void UART0_RX_ISR();

@@ -67,5 +67,6 @@ target/
 
 
 #-----------------------------------------------------------------------------
-# Custom files for Planteur project
+launchpad/doc
 planteur/planteur.db
+planteur/validation/working

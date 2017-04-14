@@ -12,6 +12,12 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${MSP430G2231_COMPILER_FLAGS})
 set(MSP430G2231_LINKER_FLAGS "-L/usr/msp430/include/ -Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${MSP430G2231_LINKER_FLAGS})
 
+
+#-------------------------------------------------------
+# Create target to erase the MCU's flash memory
+add_custom_target(erase COMMAND mspdebug rf2500 erase)
+
+
 #-------------------------------------------------------
 # Create main executable
 add_executable(a.out
@@ -27,9 +33,16 @@ add_custom_command(TARGET a.out POST_BUILD COMMAND msp430-elf-size a.out)
 # Add a target program the board with the executable
 add_custom_target(program COMMAND mspdebug rf2500 prog\ a.out DEPENDS a.out)
 
+
 #-------------------------------------------------------
-# Create target to erase the MCU's flash memory
-add_custom_target(erase COMMAND mspdebug rf2500 erase)
+# Create demo executables
+add_executable(demo.out
+				demo.cpp
+				button.cpp button.hpp
+				led.cpp led.hpp
+				system.hpp
+				uart.cpp uart.hpp)
+
 
 #-------------------------------------------------------
 # Create test executables for XBee
