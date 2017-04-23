@@ -17,7 +17,10 @@ int main(void)
     LCD lcd;
     lcd.on();
 
-    lcd.print("hello, world", "on TI launchpad");
+    lcd.print("hello, world", LCD::EMPTY_LINE);
+
+    lcd.setCursorPosition(1, 5);
+    lcd << -12345;
 
     while (1)
     {
@@ -25,7 +28,4 @@ int main(void)
         LED::Green.toogle();
         Delay::millis(500);
     }
-
-// http://www.farnell.com/datasheets/653654.pdf?_ga=1.80628375.1484903911.1492370013
-
 }

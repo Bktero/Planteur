@@ -1,6 +1,8 @@
 #ifndef LCD_HPP
 #define LCD_HPP
 
+#include <array>
+
 #include "led.hpp"
 #include "system.hpp"
 
@@ -8,13 +10,78 @@
  * @brief Abstraction over LCD.
  *
  * https://fr.wikipedia.org/wiki/HD44780
+ * http://www.farnell.com/datasheets/653654.pdf?_ga=1.80628375.1484903911.1492370013
+ * https://www.sparkfun.com/datasheets/LCD/HD44780.pdf
  */
 class LCD
 {
 public:
+    static const char * const EMPTY_LINE;
+
+    enum ShiftDirection
+    {
+        LEFT = 0, RIGHT = 1 << 2
+    };
+
     LCD()
     {
-        init8bitMode();
+        init8bitInterfaceMode();
+    }
+
+    /**
+     * Send a text to the LCD.
+     *
+     * @param text a text
+     */
+    LCD& operator<<(const char* text)
+    {
+        while (*text != 0)
+        {
+            writeData(*text);
+            ++text;
+        }
+
+        return *this;
+    }
+
+    /**
+     * Send an integer to the LCD.
+     *
+     * @param
+     */
+    LCD& operator<<(unsigned int value)
+    {
+        /*
+         * uint16_t can store values between 0 and 65535 (= 2 << 16 - 1)
+         * It means that there are at most 5 digits to extract from 'value'.
+         */
+        std::array < uint8_t, 5 > digits;
+
+        for (int i = 0; i < 5; ++i)
+        {
+            digits[4 - i] = '0' + (value % 10);
+            value /= 10;
+        }
+
+        for (std::size_t i = 0; i < digits.size() - 1; ++i)
+        {
+            if (digits[i] != '0')
+                writeData (digits[i]);
+        }
+
+        writeData (digits[digits.size() - 1]); // always write the last digit (mandatory if value == 0)
+
+        return *this;
+    }
+
+    LCD& operator<<(int value)
+    {
+        if (value < 0)
+        {
+            writeData('-');
+            value = -value;
+        }
+        return *this << static_cast<unsigned int>(value);
     }
 
     /**
@@ -54,59 +121,83 @@ public:
     }
 
     /**
-     * Set (DDRAM) address.
-     * @param address the address (should be >= 127)
+     * Set cursor position.
+     *
+     * Further write (eg. with #writeData or operators <<)
+     * will be done at this position.
+     *
+     * @param line
+     * @param position
      */
-    void setAddress(uint8_t address)
+    void setCursorPosition(int line, int position)
     {
-        // Addresses are 7-bit long so we have to mask it to clear 8th bit
-        writeCommand(0b10000000 | (address & 0x7F));
+        setAddress(line * 0x40 + position);
+    }
+
+    void shiftCursor(ShiftDirection direction)
+    {
+        writeCommand(0b00010000 | direction);
     }
 
     /**
      * Print two lines of text.
      *
      * The display is cleared first.
+     * If you want to print an empty line, use #EMPTY_LINE.
      *
-     * @param line1
-     * @param line2
+     * @param line1 the first line
+     * @param line2 the second line
      */
     void print(const char* line1, const char* line2)
     {
         clear();
 
         // Line 1
-        setAddress(0);
-        while (*line1 != 0)
-        {
-            writeData(*line1);
-            ++line1;
-        }
+        setCursorPosition(0, 0);
+        *this << line1;
 
         // Line 2
-        setAddress(40);
-        while (*line2 != 0)
-        {
-            writeData(*line2);
-            ++line2;
-        }
+        setCursorPosition(1, 0);
+        *this << line2;
     }
 
     //------------------------------------------------------------
     // Mid-level functions
-    void writeCommand(uint8_t value)
+    /**
+     * Set (DDRAM) address.
+     * @param address the address (should be >= 80)
+     */
+    void setAddress(uint8_t address)
+    {
+        // Addresses are 7-bit long
+        // But there is not need to mask the address because if the 8th bit is 1
+        // the command we still be valid
+        writeCommand(0b10000000 | address);
+    }
+
+    /**
+     * Write a command to the LCD.
+     *
+     * @param command the command
+     */
+    void writeCommand(uint8_t command)
     {
         setRegisterSelect(RegisterSelect::Command);
-        write(value);
+        write(command);
         pulseEnable();
 
         Delay::micros(50); // all commands takes at least 37 µs to execute
     }
 
-    void writeData(uint8_t value)
+    /**
+     * Write data the LCD (DDRAM) memory.
+     *
+     * @param data the data
+     */
+    void writeData(uint8_t data)
     {
         setRegisterSelect(RegisterSelect::Data);
-        write(value);
+        write(data);
         pulseEnable();
 
         Delay::micros(50); // write to RAM takes at least 37 µs to execute
@@ -159,7 +250,7 @@ private:
         P2OUT = value & 0x3F;
     }
 
-    void init8bitMode()
+    void init8bitInterfaceMode()
     {
         // Control signals
         P1DIR |= BIT7; // = Enable

@@ -23,6 +23,7 @@ add_custom_target(erase COMMAND mspdebug rf2500 erase)
 add_executable(a.out
 				button.cpp button.hpp
 				led.cpp led.hpp
+				lcd.cpp lcd.hpp
 				main.cpp
 				system.hpp
 				uart.cpp uart.hpp)
