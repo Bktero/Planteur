@@ -1,10 +1,8 @@
 """ This is the entry point for the Planteur application."""
 import json
 import logging
-import random
+
 import serial
-import socket
-import time
 
 import database
 import monitoring
@@ -45,6 +43,8 @@ def planteur(config_pathname, plant_pathname):
     # Load plants
     logging.info('Loading plants...')
     plants = plant.load_plants_from_json(plant_pathname)
+    if len(plants) == 0:
+        logging.warning('No plant has been loaded, plants.json may be empty')
 
     # Create sprinkler, monitoring aggregator and database storer
     storer = database.DatabaseStorer('planteur.db')
@@ -81,7 +81,7 @@ def planteur(config_pathname, plant_pathname):
         xbee_adapter.start()
 
     # Start a wired adapter for each wired plant
-    # FIXME replace with a specific class loading
+    # FIXME replace with custom class loading
     for plant_ in plants:
         if plant_.connection is plant.ConnectionType.wired:
             wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
@@ -91,53 +91,9 @@ def planteur(config_pathname, plant_pathname):
     logging.debug('Application startup is complete')
 
 
-class StubNetworkPlant(object):
-    """A stub plant that communicate thought network with UPD."""
-
-    def __init__(self, uid: str):
-        self.uid = uid
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.humidity = 0
-
-    def send_data(self):
-        """ Send a UDP datagram with generate stub data."""
-        self.humidity += 1
-        if self.humidity > 100:
-            self.humidity = 0
-
-        # self.humidity = random.randint(0, 100)
-
-        message = json.dumps({'plant':
-            {
-                'uid': self.uid,
-                'humidity': self.humidity,
-                'temperature': random.randint(10, 30)
-            }
-        })
-
-        message_as_bytes = message.encode()
-        self.sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
-
-
-def stub_plant_activity():
-    """Simulate plant activity through network."""
-    tomatoes = StubNetworkPlant('pgt_tomatoes_network')
-    ficus = StubNetworkPlant('pgt_ficus_network')
-    cactus = StubNetworkPlant('pgt_cactus_network')
-    plants = [tomatoes, ficus, cactus]
-
-    while True:
-        for plant_ in plants:
-            plant_.send_data()
-            time.sleep(0.02)
-
-
 if __name__ == '__main__':
     # Configure logging
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
 
     # Run Planteur
     planteur('config.json', 'plants.json')
-
-    # Simulate plant activity
-    # stub_plant_activity()

@@ -1,0 +1,10 @@
+pgt_cactus_network|70|22
+pgt_cactus_network|30|22
+pgt_cactus_network|52|30
+pgt_ficus_network|70|22
+pgt_ficus_network|30|22
+pgt_ficus_network|52|30
+pgt_tomatoes_network|70|22
+pgt_tomatoes_network|30|22
+pgt_tomatoes_network|52|30
+2

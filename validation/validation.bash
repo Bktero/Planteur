@@ -1,8 +1,19 @@
 #!/bin/bash
 
-PLANTEUR_DIR=$(readlink -f "..")
-VALIDATION_DIR=$(readlink -f ".")
+# Get path to this script
+VALIDATION_DIR=$(readlink -f $(dirname $0))
+
+# Create other path relatively to the script's path
+LAUNCHPAD_DIR=$(readlink -f "${VALIDATION_DIR}/../launchpad")
+PLANTEUR_DIR=$(readlink -f "${VALIDATION_DIR}/../planteur")
 WORKING_DIR=${VALIDATION_DIR}/working
+
+
+# Create functions to ease test writing
+function start {
+	echo "---------------------------------------"
+	echo "**** Start '$1' test ****"
+}
 
 function failure {
 	echo "---------------------------------------"
@@ -30,10 +41,89 @@ function clean {
 	fi
 }
 
+
+#-------------------------------------------------------
+# Network tests
+#-------------------------------------------------------
+function network_functional {
+	start network_functional
+
+	# Configure Planteur for network
+	cp ${VALIDATION_DIR}/network_plants.json plants.json
+
+	# Run Planteur
+	python3 app.py &
+	PLANTEUR_PID=$!
+
+	# Wait so that Planteur gains processor time to initialize
+	sleep 1
+
+	# Run network plants
+	python3 ${VALIDATION_DIR}/network_plants.py functional
+
+	# Wait a few seconds so that frames are processed before stopping Planteur
+	sleep 1
+	echo "Stop Planteur"
+	kill -9 ${PLANTEUR_PID}
+
+	# Analyze results
+	mv planteur.db network_planteur.db
+	sqlite3 network_planteur.db 'select uid, humidity, temperature from monitoring;' > network_result.txt
+	sqlite3 network_planteur.db 'select count(*) from watering;' >> network_result.txt
+
+	diff ${VALIDATION_DIR}/network_expected.txt network_result.txt 
+
+	if [ $? -eq 0 ]
+	then
+	    success
+	else
+	    failure
+	fi
+}
+
+function network_intense {
+	start network_intense
+
+	# Configure Planteur for network
+	cp ${VALIDATION_DIR}/network_plants.json plants.json
+
+	# Run Planteur
+	python3 app.py &
+	PLANTEUR_PID=$!
+
+	# Wait so that Planteur gains processor time to initialize
+	sleep 1
+
+	# Run network plants
+	python3 ${VALIDATION_DIR}/network_plants.py intense
+
+	# Wait a few seconds so that frames are processed before stopping Planteur
+	sleep 5
+	echo "Stop Planteur"
+	kill -9 ${PLANTEUR_PID}
+
+	# Analyze results
+	mv planteur.db network_planteur.db
+	MONITORING=$(sqlite3 network_planteur.db 'select count(*) from monitoring;')
+	WATERING=$(sqlite3 network_planteur.db 'select count(*) from watering;')
+
+	echo ${MONITORING} ${WATERING}
+
+	if [ ${MONITORING} -eq 200 -a ${WATERING} -eq 51 ]
+	then
+		success
+	else
+		failure
+	fi
+}
+
+
 #-------------------------------------------------------
 # XBee validation
 #-------------------------------------------------------
-function xbee_functionnal {
+function xbee_functional {
+	start xbee_functional
+
 	# Generate launchpad executable
 	make test_xbee.out
 
@@ -68,7 +158,9 @@ function xbee_functionnal {
 	fi
 }
 
-function xbee_robustness {
+function xbee_intense {
+	start xbee_intense
+
 	# Generate launchpad executable
 	make test_xbee_intense.out
 
@@ -125,7 +217,7 @@ cp ${VALIDATION_DIR}/config.json ${WORKING_DIR}
 cd ${WORKING_DIR}
 
 # Build CMake project
-cmake -DCMAKE_TOOLCHAIN_FILE=msp430-elf.cmake ${PLANTEUR_DIR}/../launchpad
+cmake -DCMAKE_TOOLCHAIN_FILE=msp430-elf.cmake ${LAUNCHPAD_DIR}
 
 # Erase MCU's flash memory
 make erase
@@ -134,13 +226,11 @@ make erase
 #-------------------------------------------------------
 # Run tests
 #-------------------------------------------------------
-xbee_functionnal
+network_functional
 clean
-xbee_robustness
+network_intense
 clean
-
-
-
-
-
-
+xbee_functional
+clean
+xbee_intense
+clean
