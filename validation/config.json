@@ -1,6 +1,6 @@
 {
   "log": {
-    "level": "CRITICAL"
+    "level": "WARNING"
   },
   "xbee": {
     "serial_port": "/dev/ttyUSB0"
