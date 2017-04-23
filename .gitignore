@@ -69,4 +69,4 @@ target/
 #-----------------------------------------------------------------------------
 launchpad/doc
 planteur/planteur.db
-planteur/validation/working
+validation/working
