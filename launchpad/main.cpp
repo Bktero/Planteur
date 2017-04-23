@@ -17,7 +17,7 @@ int main(void)
     LCD lcd;
     lcd.on();
 
-    //lcd.print("hello, world", "on TI launchpad");
+    lcd.print("hello, world", "on TI launchpad");
 
     while (1)
     {
@@ -27,5 +27,5 @@ int main(void)
     }
 
 // http://www.farnell.com/datasheets/653654.pdf?_ga=1.80628375.1484903911.1492370013
-// https://fr.wikipedia.org/wiki/HD44780
+
 }

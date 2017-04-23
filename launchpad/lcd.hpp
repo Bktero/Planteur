@@ -4,12 +4,17 @@
 #include "led.hpp"
 #include "system.hpp"
 
+/**
+ * @brief Abstraction over LCD.
+ *
+ * https://fr.wikipedia.org/wiki/HD44780
+ */
 class LCD
 {
 public:
     LCD()
     {
-
+        init8bitMode();
     }
 
     /**
