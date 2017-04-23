@@ -14,6 +14,22 @@ namespace Delay
 /**
  * Active wait.
  *
+ * @param micros number of microseconds to wait
+ */
+inline void micros(unsigned long micros)
+{
+    while (micros > 0)
+    {
+        __delay_cycles(1);
+        --micros;
+    }
+
+    // TODO get clock frequency (here, assumed to be 1 MHz)
+}
+
+/**
+ * Active wait.
+ *
  * @param millis number of milliseconds to wait
  */
 inline void millis(unsigned long millis)
