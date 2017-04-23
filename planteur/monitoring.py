@@ -17,8 +17,7 @@ from enum import Enum
 
 __author__ = 'pgradot'
 
-MonitoringEvent = namedtuple('MonitoringEvent',
-                             ['timestamp', 'uid', 'humidity', 'temperature'])
+MonitoringEvent = namedtuple('MonitoringEvent', ['timestamp', 'uid', 'humidity', 'temperature'])
 """When a monitoring event occurs, either because a plant has sent some data
 or because Planteur has decided to read a sensor, a monitoring event is created. It
 contains the time of generation, the UID of the plant, and the data from the
@@ -50,8 +49,8 @@ class MonitoringAggregator:
 
     def start(self):
         """Start the aggregator's thread and start processing events."""
-        aggregator_thread = threading.Thread(target=self._process_events,
-                                             name=self.__class__.__name__ + 'thread')
+        aggregator_thread = threading.Thread(target=self._process_events, name=self.__class__.__name__ + 'thread')
+        logging.debug('%s: starts', self.__class__.__name__)
         aggregator_thread.start()
 
     def _process_events(self):
@@ -63,8 +62,7 @@ class MonitoringAggregator:
         while True:
             # Retrieve event
             event = self._queue.get()
-            logging.info('%s: processing event %s', self.__class__.__name__,
-                         event)
+            logging.info('%s: processing event %s', self.__class__.__name__, event)
 
             # Check if this plant is in the list
             known = False
@@ -78,8 +76,7 @@ class MonitoringAggregator:
                 for listener in self.listeners:
                     listener.process_event(event)
             else:
-                logging.error('%s: unknown plant %s', self.__class__.__name__,
-                              event.uid)
+                logging.error('%s: unknown plant %s', self.__class__.__name__, event.uid)
 
             # Release queue
             self._queue.task_done()
@@ -99,9 +96,8 @@ class StubWiredAdapter:
 
     def start(self):
         """Start the thread for this stub adapter."""
-        wired_thread = threading.Thread(target=self._poll_sensors,
-                                        name="{}: {} thread".format(
-                                            self.__class__.__name__, self.uid))
+        wired_thread = threading.Thread(target=self._poll_sensors, name="{}: {} thread"
+                                        .format(self.__class__.__name__, self.uid))
         wired_thread.start()
 
     def _poll_sensors(self):
@@ -144,24 +140,22 @@ class NetworkAdapter:
 
     def start(self):
         """Start the server thread."""
-        server_thread = threading.Thread(target=self._run_server,
-                                         name="{} on {}:{} server thread".format(
-                                             self.__class__.__name__,
-                                             self.ipaddr, self.port))
+        server_thread = threading.Thread(target=self._run_server, name="{} on {}:{} server thread"
+                                         .format(self.__class__.__name__, self.ipaddr, self.port))
         server_thread.start()
 
     def _run_server(self):
         """Create UDP server, receive and process datagrams."""
         self.sock.bind((self.ipaddr, self.port))
-        logging.info("%s: waiting for datagrams on %s:%d",
-                     self.__class__.__name__, self.ipaddr, self.port)
+        logging.info("%s: waiting for datagrams on %s:%d", self.__class__.__name__, self.ipaddr, self.port)
+
         while True:
-            message, address = self.sock.recvfrom(2048)
-            # TODO adjust buffer size (for now, it is 2048 bytes)
-            message_as_string = bytes.decode(message)
-            logging.info("%s: received [%s] from %s", self.__class__.__name__,
-                         message_as_string, address)
-            json_dict = json.loads(message_as_string)
+            message, address = self.sock.recvfrom(
+                2048)  # TODO adjust buffer size (for now, it is 2048 bytes)
+            message_str = bytes.decode(message)
+            logging.info("%s: received [%s] from %s", self.__class__.__name__, message_str, address)
+
+            json_dict = json.loads(message_str)
             event = create_monitoring_event(json_dict['plant']['uid'],
                                             json_dict['plant']['humidity'],
                                             json_dict['plant']['temperature'])
@@ -176,65 +170,71 @@ class XBeeAdapter:
     periodically. This adapter waits from their frame, format in a common format
      and add then to a MonitoringAggregator.
     """
-    xbee_frame = namedtuple('frame', ['src', 'dest', 'payload'])
+    xbee_frame = namedtuple('frame', ['dest', 'src', 'type', 'payload'])
 
     class FrameType(Enum):
         plant = 1
 
     def __init__(self, aggregator: MonitoringAggregator, ser: serial,
-                 uids: dict):
+                 uid_dict: dict):
         """Create new XBeeAdapter.
 
         :param aggregator: the aggregator
         :param ser: the serial port to which the XBee module is connected
-        :param uids: a dictionary with XBee ID as keys and plant UIDs as values
+        :param uid_dict: a dictionary with XBee ID as keys (int) and plant UIDs (str) as values
         """
         self.aggregator = aggregator
         self.ser = ser
-        self.uids = uids
+        self.uid_dict = uid_dict
 
     def start(self):
         """Start the server thread."""
-        server_thread = threading.Thread(target=self._run_server,
-                                         name="{} on {} server thread".format(
-                                             self.__class__.__name__,
-                                             self.ser.name))
+        server_thread = threading.Thread(target=self._run_server, name="{} on {} server thread"
+                                         .format(self.__class__.__name__, self.ser.name))
         server_thread.start()
 
     def _get_int(self):
+        """Get the next byte from the serial port as an int."""
         b = self.ser.read()
         i = int.from_bytes(b, byteorder='big')
-        #print(i)
+        # print(i)
         return i
 
     def _get_frame(self):
-        src = self._get_int()
+        """Get the next frame from the serial port."""
         dest = self._get_int()
+        src = self._get_int()
+        type = self._get_int()
+
         length = self._get_int()
         payload = list()
         while length > 0:
             d = self._get_int()
             payload.append(d)
             length -= 1
-        return self.xbee_frame(src, dest, payload)
+
+        return self.xbee_frame(dest, src, type, payload)
 
     def _run_server(self):
         """Receive and process XBee frames."""
-        logging.info("%s: waiting for frames on %s",
-                     self.__class__.__name__, self.ser.name)
+        logging.info("%s: waiting for frames on %s", self.__class__.__name__, self.ser.name)
+
         while True:
             frame = self._get_frame()
 
-            if frame.dest == 0 and frame.payload[0] == self.FrameType.plant.value: # Cannot compare directly an int and an enum
-                logging.info("%s: received [%s]",
-                             self.__class__.__name__, frame)
-                uid = self.uids[str(frame.src)]
-                humidity = frame.payload[1]
-                temperature = frame.payload[2]
+            if frame.dest == 0 and frame.src in self.uid_dict and frame.type == self.FrameType.plant.value:
+                # This frame contains a plant's monitoring event
+                logging.debug("%s: frame received [%s]", self.__class__.__name__, frame)
+
+                uid = self.uid_dict[frame.src]
+                humidity = frame.payload[0]
+                temperature = frame.payload[1]
                 event = create_monitoring_event(uid, humidity, temperature)
+
                 self.aggregator.post(event)
             else:
-                # The gateway is not the destination of this frame
-                # or the type of frame is unknown
-                logging.debug("%s: ignore frame %s",
-                              self.__class__.__name__, frame)
+                # The frame is rejected because of one of the following reasons:
+                # - the gateway isn't its destination
+                # - the source isn't known
+                # - the frame type is supported
+                logging.warning("%s: frame ignored [%s]", self.__class__.__name__, frame)

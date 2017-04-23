@@ -16,8 +16,6 @@ __author__ = 'pgradot'
 UDP_IPADDR = 'localhost'
 UDP_PORT = 14246
 
-XBEE_TTYUSB = "/dev/ttyUSB0"
-
 
 def planteur(config_pathname, plant_pathname):
     """Run the Planteur!
@@ -29,20 +27,23 @@ def planteur(config_pathname, plant_pathname):
     """
     logging.info('Planteur application starts')
 
-    # Load configuration
+    # Read configuration
     logging.info('Loading configuration...')
     with open(config_pathname) as file:
-        # Log level
+        # Load JSON content
         json_dict = json.load(file)
+
+        # Log level
         level_str = json_dict['log']['level']
-
         level = getattr(logging, level_str.upper())
-
         logging.info('Changing log level to %s', level)
         logging.getLogger().setLevel(level)
 
+        # XBee serial port
+        xbee_serial_port = json_dict['xbee']['serial_port']
+
     # Load plants
-    logging.info('Logging plants...')
+    logging.info('Loading plants...')
     plants = plant.load_plants_from_json(plant_pathname)
 
     # Create sprinkler, monitoring aggregator and database storer
@@ -67,27 +68,32 @@ def planteur(config_pathname, plant_pathname):
             network_adapter.start()
             break
 
-    # Start a wired adapter for each wired plant
-    for plant_ in plants:
-        if plant_.connection is plant.ConnectionType.wired:
-            wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
-            wired_adapter.start()
-
-    # Start an XBee adapter
+    # Start an XBee adapter if there is at least one network plant
     xbee_uids = dict()
     for plant_ in plants:
         if plant_.connection is plant.ConnectionType.xbee:
             xbee_uids[plant_.xbee_id] = plant_.uid
 
     if len(xbee_uids) != 0:
-        ser = serial.Serial(XBEE_TTYUSB)
+        ser = serial.Serial(xbee_serial_port)
         logging.debug('XBee ID <==> UID: %s', xbee_uids)
         xbee_adapter = monitoring.XBeeAdapter(aggregator, ser, xbee_uids)
         xbee_adapter.start()
 
+    # Start a wired adapter for each wired plant
+    # FIXME replace with a specific class loading
+    for plant_ in plants:
+        if plant_.connection is plant.ConnectionType.wired:
+            wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
+            # wired_adapter.start()
+
+    # Startup complete
+    logging.debug('Application startup is complete')
+
 
 class StubNetworkPlant(object):
     """A stub plant that communicate thought network with UPD."""
+
     def __init__(self, uid: str):
         self.uid = uid
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -102,12 +108,12 @@ class StubNetworkPlant(object):
         # self.humidity = random.randint(0, 100)
 
         message = json.dumps({'plant':
-                                  {
-                                      'uid': self.uid,
-                                      'humidity': self.humidity,
-                                      'temperature': random.randint(10, 30)
-                                  }
-                              })
+            {
+                'uid': self.uid,
+                'humidity': self.humidity,
+                'temperature': random.randint(10, 30)
+            }
+        })
 
         message_as_bytes = message.encode()
         self.sock.sendto(message_as_bytes, (UDP_IPADDR, UDP_PORT))
@@ -117,12 +123,14 @@ def stub_plant_activity():
     """Simulate plant activity through network."""
     tomatoes = StubNetworkPlant('pgt_tomatoes_network')
     ficus = StubNetworkPlant('pgt_ficus_network')
-    plants = [tomatoes, ficus]
+    cactus = StubNetworkPlant('pgt_cactus_network')
+    plants = [tomatoes, ficus, cactus]
 
     while True:
         for plant_ in plants:
             plant_.send_data()
-            time.sleep(1)
+            time.sleep(0.02)
+
 
 if __name__ == '__main__':
     # Configure logging
@@ -131,6 +139,5 @@ if __name__ == '__main__':
     # Run Planteur
     planteur('config.json', 'plants.json')
 
-
     # Simulate plant activity
-    stub_plant_activity()
+    # stub_plant_activity()

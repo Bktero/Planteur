@@ -27,7 +27,8 @@ class WateringMethod(Enum):
 
 class Plant:
     """A Plant is python object that represent a plant from the real world."""
-    def __init__(self, uid: str, name: str, connection: ConnectionType,watering: WateringMethod):
+
+    def __init__(self, uid: str, name: str, connection: ConnectionType, watering: WateringMethod):
         """Create a new plant.
 
         :param uid: a unique identifier
@@ -41,7 +42,8 @@ class Plant:
         self.watering = watering
 
     def __str__(self):
-        return '{}: uid={}, name={}, connection={} watering={}'.format(self.__class__.__name__, self.uid, self.name, self.connection, self.watering)
+        return '{}: uid={}, name={}, connection={} watering={}' \
+            .format(self.__class__.__name__, self.uid, self.name, self.connection, self.watering)
 
 
 def load_plants_from_json(pathname: str):
@@ -67,11 +69,11 @@ def load_plants_from_json(pathname: str):
 
             # Create plant and add it to the list of plants
             plant = Plant(uid, name, connection, watering)
-            logging.debug('Loading plant: %s', plant)
+            logging.info('Loading plant: %s', plant)
             plants.append(plant)
 
             # Add special fields depending on the type of plant
             if plant.connection == ConnectionType.xbee:
-                plant.xbee_id = plant_dict['xbee_id']
+                plant.xbee_id = int(plant_dict['xbee_id'])
 
     return plants
