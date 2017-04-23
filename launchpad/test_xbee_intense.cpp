@@ -34,7 +34,7 @@ int main()
     Launchpad::init();
 
     // Configure baudrate to 9600 (default for XBee modules)
-    UART::Uart0.setBaudrate(UART::Baudrate::_9600);
+    UART::Uart0.setBaudrate(UART::Baudrate::BR_9600);
 
     // Send frames
     for (int i = 0; i < 2048; ++i)

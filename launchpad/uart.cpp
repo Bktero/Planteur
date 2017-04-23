@@ -104,7 +104,7 @@ UART::UART() :
     // Disable USCI_A0 TX interrupt
     //UC0IE &= ~UCA0TXIE;
 
-    setBaudrate(Baudrate::_115200);
+    setBaudrate(Baudrate::BR_115200);
 }
 
 void UART::setBaudrate(Baudrate baudrate)
@@ -129,35 +129,35 @@ void UART::setBaudrate(Baudrate baudrate)
     switch (baudrate)
     {
     // FIXME We assume that SMCLK is 1 MHz
-    case Baudrate::_9600:
+    case Baudrate::BR_9600:
         // N = 104.2, UCBRSx = 1
         UCA0BR0 = 104;
         UCA0BR1 = 0;
         UCA0MCTL = UCBRS0;
         break;
 
-    case Baudrate::_19200:
+    case Baudrate::BR_19200:
         // N = 52.08, UCBRSx = 1
         UCA0BR0 = 52;
         UCA0BR1 = 0;
         UCA0MCTL = UCBRS0;
         break;
 
-    case Baudrate::_38400:
+    case Baudrate::BR_38400:
         // N = 26.04, UCBRSx = 0
         UCA0BR0 = 26;
         UCA0BR1 = 0;
         UCA0MCTL = 0;
         break;
 
-    case Baudrate::_57600:
+    case Baudrate::BR_57600:
         // N = 17.36, UCBRSx = 3
         UCA0BR0 = 17;
         UCA0BR1 = 0;
         UCA0MCTL = UCBRS1 + UCBRS0;
         break;
 
-    case Baudrate::_115200:
+    case Baudrate::BR_115200:
         // N = 8.68, UCBRSx = 5
         UCA0BR0 = 8;
         UCA0BR1 = 0;
