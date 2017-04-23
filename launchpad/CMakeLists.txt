@@ -43,6 +43,7 @@ add_executable(demo.out
 				system.hpp
 				uart.cpp uart.hpp)
 
+add_custom_command(TARGET demo.out POST_BUILD COMMAND msp430-elf-size demo.out)
 
 #-------------------------------------------------------
 # Create test executables for XBee
