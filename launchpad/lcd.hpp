@@ -145,7 +145,7 @@ public:
     /**
      * Set cursor position.
      *
-     * Further write (eg. with #writeData or operators <<)
+     * Further write (eg. with writeData() or operators <<)
      * will be done at this position.
      *
      * @param line
@@ -170,7 +170,7 @@ public:
      * Print two lines of text.
      *
      * The display is cleared first.
-     * If you want to print an empty line, use #EMPTY_LINE.
+     * If you want to print an empty line, use EMPTY_LINE.
      *
      * @param line1 the first line
      * @param line2 the second line
