@@ -10,22 +10,37 @@
  * @brief Abstraction over LCD.
  *
  * https://fr.wikipedia.org/wiki/HD44780
+ * https://en.wikipedia.org/wiki/Hitachi_HD44780_LCD_controller
  * http://www.farnell.com/datasheets/653654.pdf?_ga=1.80628375.1484903911.1492370013
  * https://www.sparkfun.com/datasheets/LCD/HD44780.pdf
  */
+template<class LCDLowLevel>
 class LCD
 {
 public:
-    static const char * const EMPTY_LINE;
+    static constexpr const char * const EMPTY_LINE = "";
+
+    enum Mode
+    {
+        MODE_4BITS, MODE_8BITS
+    };
 
     enum ShiftDirection
     {
         LEFT = 0, RIGHT = 1 << 2
     };
 
+    /**
+     * Create new instance.
+     */
     LCD()
     {
-        init8bitInterfaceMode();
+
+        LCDLowLevel::init();
+        if (LCDLowLevel::mode == MODE_4BITS)
+            static_assert(LCDLowLevel::mode == MODE_8BITS, "MODE_4BITS is not supported yet");
+        else
+            init8bits();
     }
 
     /**
@@ -45,9 +60,10 @@ public:
     }
 
     /**
-     * Send an integer to the LCD.
+     * Send an unsigned integer to the LCD.
      *
-     * @param
+     * @param value an unsigned integer
+     * @return this
      */
     LCD& operator<<(unsigned int value)
     {
@@ -74,6 +90,12 @@ public:
         return *this;
     }
 
+    /**
+     * Send a signed integer to the LCD.
+     *
+     * @param value a signed integer
+     * @return this
+     */
     LCD& operator<<(int value)
     {
         if (value < 0)
@@ -134,6 +156,11 @@ public:
         setAddress(line * 0x40 + position);
     }
 
+    /**
+     * Shift the cursor.
+     *
+     * @param direction the direction to shift the cursor to
+     */
     void shiftCursor(ShiftDirection direction)
     {
         writeCommand(0b00010000 | direction);
@@ -161,20 +188,18 @@ public:
         *this << line2;
     }
 
-    //------------------------------------------------------------
-    // Mid-level functions
     /**
      * Set (DDRAM) address.
      * @param address the address (should be >= 80)
      */
     void setAddress(uint8_t address)
     {
-        // Addresses are 7-bit long
-        // But there is not need to mask the address because if the 8th bit is 1
-        // the command we still be valid
+        // Addresses are 7-bit long but there is not need to mask the address
+        // because the command is still valid if the 8th bit is 1
         writeCommand(0b10000000 | address);
     }
 
+private:
     /**
      * Write a command to the LCD.
      *
@@ -182,8 +207,8 @@ public:
      */
     void writeCommand(uint8_t command)
     {
-        setRegisterSelect(RegisterSelect::Command);
-        write(command);
+        LCDLowLevel::registerSelectLow();
+        LCDLowLevel::write(command);
         pulseEnable();
 
         Delay::micros(50); // all commands takes at least 37 µs to execute
@@ -196,70 +221,33 @@ public:
      */
     void writeData(uint8_t data)
     {
-        setRegisterSelect(RegisterSelect::Data);
-        write(data);
+        LCDLowLevel::registerSelectHigh();
+        LCDLowLevel::write(data);
         pulseEnable();
 
         Delay::micros(50); // write to RAM takes at least 37 µs to execute
     }
 
-private:
-    enum RegisterSelect
-    {
-        Command = 0, Data = 1
-    };
-
-    void setRegisterSelect(RegisterSelect selection)
-    {
-        switch (selection)
-        {
-        case Command:
-
-            LED::Red.off();
-            break;
-        case Data:
-            LED::Red.on();
-            break;
-        default:
-            break;
-        }
-
-        // FIXME LED1 = RED LED = P1.0 is used as control signal because there are two few availabe GPIOs
-
-    }
-
+    /**
+     * Genreate a pulse of the 'enable' pin.
+     */
     void pulseEnable()
     {
-        P1OUT &= ~BIT7;
+        LCDLowLevel::enableLow();
         Delay::micros(1);
 
-        P1OUT |= BIT7;
+        LCDLowLevel::enableHigh();
         Delay::micros(1);
 
-        P1OUT &= ~BIT7;
-        Delay::micros(100);
+        LCDLowLevel::enableLow();
+        Delay::micros(1);
     }
 
-    void write(uint8_t value)
+    /**
+     * Initialize the LCD in 8-bit interface mode.
+     */
+    void init8bits()
     {
-
-        P1OUT &= ~(1 << 4);
-        P1OUT &= ~(1 << 5);
-        P1OUT |= ((value & 0xC0) >> 6) << 4;
-
-        P2OUT = value & 0x3F;
-    }
-
-    void init8bitInterfaceMode()
-    {
-        // Control signals
-        P1DIR |= BIT7; // = Enable
-        // Note RW/S is not used
-
-        // Data signals
-        P1DIR |= BIT4 | BIT5;
-        P2DIR |= BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5;
-
         // Initialize LCD
         // 1 - Wait > 40 ms after Vdd > 2.7 V
         Delay::millis(50);
@@ -276,7 +264,7 @@ private:
         // 4 - Wait time > 100 us
         Delay::millis(1);
 
-        // 5 - Function set
+        // 5 - Function set (select 8 bit mode)
         writeCommand(0b00110000);
 
         // 6 - Number of lines and character font (2 lines, 5x8 dots format)
