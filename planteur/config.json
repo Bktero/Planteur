@@ -1,8 +1,0 @@
-{
-  "log": {
-    "level": "INFO"
-  },
-  "xbee": {
-    "serial_port": "/dev/ttyUSB0"
-  }
-}

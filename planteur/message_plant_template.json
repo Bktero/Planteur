@@ -1,0 +1,12 @@
+{
+  "plant": {
+    "uid": "cactus",
+    "__comment": "(mandatory)",
+    "timestamp": 1526727405.4126287,
+    "__comment": "(mandatory ; number of seconds since the epoch)",
+    "humidity": 50,
+    "__comment": "(mandatory)",
+    "temperature": 25,
+    "__comment": "(optional)"
+  }
+}

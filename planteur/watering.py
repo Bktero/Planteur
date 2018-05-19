@@ -3,88 +3,80 @@
 import logging
 import queue
 import threading
-import time
-from collections import namedtuple
-
-import plant
-
-__author__ = 'pgradot'
-
-WateringDemand = namedtuple('WateringDemand', ['timestamp', 'uid'])
-'''Represent a watering demand.'''
+import json
+import paho.mqtt.publish
 
 
-def create_watering_demand(uid: str):
-    """A factory method to create a watering demand with the current time
-    as the timestamp of the demand.
+def publish_watering_request(uid):
+    """Publish a message to the 'planteur/watering' topic.
+
+    :param uid: the UID of the plant
     """
-    return WateringDemand(time.time(), uid)
+    d = dict()
+    d['watering'] = dict()
+    d['watering']['uid'] = uid
 
-
-# TODO create watering planner for planned-watering plants
+    message = json.dumps(d)
+    logging.info('Publish watering request: %s', message)
+    paho.mqtt.publish.single('planteur/watering', message)
 
 
 class Sprinkler:
-    """A Sprinkler is responsible for watering plants."""
-
-    def __init__(self, plants):
-        self.listeners = list()
-        self._queue = queue.Queue()
-        self._plants = plants
-
-    def post(self, demand: WateringDemand):
-        """Post a demand that the sprinkler will then consume."""
-        self._queue.put(demand)
-
-    def process_event(self, event):
-        """Process a monitoring event and decide if a plant needs to be watered.
-
-        This method is meant to turn Sprinkler into a listener for
-        MonitoringAggregator.
-
-        :param event: a event
-        :type event: monitoring.MonitoringEvent
-        """
-        # Find the plant in the list
-        plant_ = None
-        for p in self._plants:
-            if p.uid == event.uid and p.watering == plant.WateringMethod.conditional:
-                plant_ = p
-                break
-
-        # Process event if the plant has conditional watering method
-        if plant_ is not None:
-            if event.temperature is not None and event.temperature >= 25:
-                # It's hot out there, the plant needs more water!
-                if event.humidity <= 60:
-                    demand = create_watering_demand(plant_.uid)
-                    self.post(demand)
-
-            else:
-                if event.humidity <= 50:
-                    demand = create_watering_demand(plant_.uid)
-                    self.post(demand)
+    def __init__(self):
+        self.client = paho.mqtt.client.Client()
 
     def start(self):
-        """Start the sprinkler's thread and start processing demands."""
-        aggregator_thread = threading.Thread(target=self._process_demands, name=self.__class__.__name__ + 'thread')
-        logging.debug('%s: starts', self.__class__.__name__)
-        aggregator_thread.start()
+        """Start the sprinkler thread."""
+        name = '%s thread'.format(self.__class__.__name__)
+        thread = threading.Thread(target=self._run, name=name)
+        thread.start()
 
-    def _process_demands(self):
-        """Get demands from the queue and process them.
+    def _run(self):
+        """Receive and process MQTT messages."""
 
-        For the moment, the sprinkler just broadcasts to its listeners.
-        """
-        while True:
-            # Retrieve demand
-            demand = self._queue.get()
-            logging.info('%s: demand %s', self.__class__.__name__, demand)
+        def on_connect(client, userdata, flags, rc):
+            logging.info('%s: connected with result %s', self.__class__.__name__, str(rc))
+            client.subscribe('planteur/plant')
 
-            for listener in self.listeners:
-                listener.process_demand(demand)
+        def on_message(client, userdata, message):
+            logging.debug('%s: new message %s', self.__class__.__name__, message.payload)
 
-            # TODO water plants
+            # Load message content
+            j = json.loads(message.payload)
+            uid = j['plant']['uid']
+            humidity = j['plant']['humidity']
 
-            # Release queue
-            self._queue.task_done()
+            temperature = None
+            if 'temperature' in j['plant']:
+                temperature = j['plant']['temperature']
+
+            # Find the plant in the list
+            # TODO look if plant is known
+            # my_plant = None
+            # for p in self._plants:
+            #     if p.uid == uid and p.watering == plant.WateringMethod.conditional:
+            #         my_plant = p
+            #         break
+            # STUB:
+            class Plant:
+                def __init__(self, uid):
+                    self.uid = uid
+
+            my_plant = Plant(uid)
+            # END_STUB
+
+            # Process event if the plant has conditional watering method
+            if my_plant is not None:
+                if temperature is not None and temperature >= 25:
+                    # It's hot out there, the plant needs more water!
+                    if humidity <= 60:
+                        publish_watering_request(my_plant.uid)
+
+                else:
+                    if humidity <= 50:
+                        publish_watering_request(my_plant.uid)
+
+        self.client.on_connect = on_connect
+        self.client.on_message = on_message
+        self.client.connect('localhost')
+        self.client.loop_forever()
