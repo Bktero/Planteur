@@ -27,7 +27,7 @@ class Sprinkler:
 
     def start(self):
         """Start the sprinkler thread."""
-        name = '%s thread'.format(self.__class__.__name__)
+        name = '{} thread'.format(self.__class__.__name__)
         thread = threading.Thread(target=self._run, name=name)
         thread.start()
 
@@ -40,6 +40,12 @@ class Sprinkler:
 
         def on_message(client, userdata, message):
             logging.debug('%s: new message %s', self.__class__.__name__, message.payload)
+
+            # Note: Paho receives strings on Xubuntu but bytes on Raspberry
+            # mosquitto_sub sees strings on both platforms
+            # Be safe and convert if neeeded
+            if type(message.payload) != type(str()):
+                message.payload = message.payload.decode("utf-8") 
 
             # Load message content
             j = json.loads(message.payload)

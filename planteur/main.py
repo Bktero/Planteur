@@ -1,13 +1,13 @@
 import logging
 import time
 
-import planteur.watering
-from planteur.monitoring import publish_plant_event, publish_ambient_event
+import watering
+from monitoring import publish_plant_event, publish_ambient_event
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
 
-    sprinkler = planteur.watering.Sprinkler()
+    sprinkler = watering.Sprinkler()
     sprinkler.start()
 
     time.sleep(1)
