@@ -8,8 +8,9 @@ import messaging
 
 
 class Sprinkler:
-    def __init__(self):
+    def __init__(self, plants):
         self.client = paho.mqtt.client.Client()
+        self.plants = plants
 
     def start(self):
         """Start the sprinkler thread."""

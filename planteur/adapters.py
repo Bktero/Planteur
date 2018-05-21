@@ -1,4 +1,4 @@
-"""This module provides classes for monitoring."""
+"""This module provides ready-to-use adapters."""
 import enum
 import logging
 import threading
@@ -9,8 +9,8 @@ import serial
 import messaging
 
 
-class SerialMonitor:
-    """A SerialMonitor is monitor from a serial port.
+class XbeeAdapter:
+    """A XbeeAdapter is an adapter for an Xbee module connected to a serial port.
 
     It reads the serial port to extract frames that are then published to the MQTT server.
     """
@@ -20,17 +20,17 @@ class SerialMonitor:
     class FrameType(enum.Enum):
         plant = 1
 
-    def __init__(self, serial_port: serial, uid_dict: dict):
+    def __init__(self, serial_port: serial, xbee_ids_to_uids: dict):
         """Create new instance.
 
         :param serial_port: the serial port to read from
-        :param uid_dict: a dictionary with Serial ID as keys (int) and plant UIDs (str) as values
+        :param xbee_ids_to_uids: a dictionary with Xbee ID as keys (int) and plant UIDs (str) as values
         """
         self.serial_port = serial_port
-        self.uid_dict = uid_dict
+        self.xbee_ids_to_uids = xbee_ids_to_uids
 
     def start(self):
-        """Start the serial monitor thread."""
+        """Start the XBee adapter thread."""
         name = '{} (port = {}) thread'.format(self.__class__.__name__, self.serial_port.name)
         thread = threading.Thread(target=self._run, name=name)
         thread.start()
@@ -64,11 +64,11 @@ class SerialMonitor:
         while True:
             frame = self._get_next_frame()
 
-            if frame.dest == 0 and frame.src in self.uid_dict and frame.type == self.FrameType.plant.value:
+            if frame.dest == 0 and frame.src in self.xbee_ids_to_uids and frame.type == self.FrameType.plant.value:
                 # This frame contains a plant event
                 logging.debug('%s: frame received [%s]', self.__class__.__name__, frame)
 
-                uid = self.uid_dict[frame.src]
+                uid = self.xbee_ids_to_uids[frame.src]
                 humidity = frame.payload[0]
                 temperature = frame.payload[1]
 
