@@ -2,7 +2,7 @@
 import logging
 import threading
 
-import paho.mqtt.publish
+import paho.mqtt.client
 
 import messaging
 
@@ -28,7 +28,7 @@ class Sprinkler:
         def on_message(client, userdata, message):
             logging.debug('%s: new message %s', self.__class__.__name__, message.payload)
 
-            uid, humidity, temperature = messaging.decode_plant_message(message)
+            timestamp, uid, humidity, temperature = messaging.decode_plant_message(message)
 
             # Find the plant in the list
             # TODO look if plant is known

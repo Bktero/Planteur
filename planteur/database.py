@@ -1,17 +1,22 @@
-"""This module provides a class that is able to store data in an SQLite3
-database.
+"""This module provides a class that is able to store data in an SQLite3 database.
 
 You can use SQLiteBrowser to visualize the data inside an SQLite3 file.
 See http://sqlitebrowser.org/.
 """
+import logging
 import sqlite3
 import threading
 
-__author__ = 'pgradot'
+import paho.mqtt.client
+
+import messaging
 
 
-class DatabaseStorer:
-    """An object able to store data in a database."""
+class DatabaseLogger:
+    """An object able to log MQTT messages in a database.
+
+    The database then contains an history of the data exchanged between the services.
+    """
 
     def __init__(self, name):
         """Create a new instance.
@@ -21,16 +26,25 @@ class DatabaseStorer:
         :param name: the name of the SQLite file
         :type name: str
         """
+        self.conn = sqlite3.connect(name, check_same_thread=False)
         self.lock = threading.Lock()
         # It is not safe to share a connection between several threads: http://stackoverflow.com/a/22739924
         # This lock is here as a mutex
-
-        self.conn = sqlite3.connect(name, check_same_thread=False)
+        self.client = paho.mqtt.client.Client()
 
         cursor = self.conn.cursor()
 
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS monitoring(
+            CREATE TABLE IF NOT EXISTS plant(
+                timestamp DATE,
+                uid TEXT,
+                humidity INTEGER,
+                temperature INTEGER
+            )
+            ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ambient(
                 timestamp DATE,
                 uid TEXT,
                 humidity INTEGER,
@@ -51,34 +65,56 @@ class DatabaseStorer:
         """Delete object and cleanup."""
         self.conn.close()
 
-    def process_event(self, event):
-        """ Store a monitoring event into the database.
+    def start(self):
+        """Start the database logger thread."""
+        name = '{} thread'.format(self.__class__.__name__)
+        thread = threading.Thread(target=self._run, name=name)
+        thread.start()
 
-        :param event: the monitoring event to store
-        :type event: monitoring.MonitoringEvent
-        """
-        self.lock.acquire()
-        cursor = self.conn.cursor()
+    def _run(self):
+        """Receive and process MQTT messages."""
 
-        cursor.execute('''
-        INSERT INTO monitoring(timestamp, uid, humidity, temperature) VALUES(?, ?, ?, ?)
-        ''', (event.timestamp, event.uid, event.humidity, event.temperature))
+        # Define callbacks for MQTT
+        def on_connect(client, userdata, flags, rc):
+            logging.info('%s: connected with result %s', self.__class__.__name__, str(rc))
+            client.subscribe('planteur/ambient')
+            client.subscribe('planteur/plant')
+            client.subscribe('planteur/watering')
 
-        self.conn.commit()
-        self.lock.release()
+        def on_message(client, userdata, message):
+            logging.debug('%s: new message %s', self.__class__.__name__, message.payload)
 
-    def process_demand(self, demand):
-        """Store a watering demand into the database.
+            self.lock.acquire()
+            cursor = self.conn.cursor()
 
-        :param event: the watering demand to store
-        :type event: watering.WateringDemand
-        """
-        self.lock.acquire()
-        cursor = self.conn.cursor()
+            if message.topic == 'planteur/ambient':
+                timestamp, uid, humidity, temperature = messaging.decode_ambient_message(message)
 
-        cursor.execute('''
-        INSERT INTO watering(timestamp, uid) VALUES(?, ?)
-        ''', (demand.timestamp, demand.uid))
+                cursor.execute('''
+                INSERT INTO ambient(timestamp, uid, humidity, temperature) VALUES(?, ?, ?, ?)
+                ''', (timestamp, uid, humidity, temperature))
 
-        self.conn.commit()
-        self.lock.release()
+            elif message.topic == 'planteur/plant':
+                timestamp, uid, humidity, temperature = messaging.decode_plant_message(message)
+
+                cursor.execute('''
+                INSERT INTO plant(timestamp, uid, humidity, temperature) VALUES(?, ?, ?, ?)
+                ''', (timestamp, uid, humidity, temperature))
+
+            elif message.topic == 'planteur/watering':
+                timestamp, uid = messaging.decode_watering_message(message)
+
+                cursor.execute('''
+                INSERT INTO watering(timestamp, uid) VALUES(?, ?)
+                ''', (timestamp, uid))
+
+            self.conn.commit()
+            self.lock.release()
+
+        # Set callbacks
+        self.client.on_connect = on_connect
+        self.client.on_message = on_message
+
+        # Connect and wait for messages
+        self.client.connect('localhost')  # FIXME extract hostname somewhere
+        self.client.loop_forever()
