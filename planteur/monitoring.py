@@ -1,65 +1,12 @@
 """This module provides classes for monitoring."""
-# import random
 import enum
-import json
 import logging
 import threading
-import time
 from collections import namedtuple
 
-import paho.mqtt.publish
 import serial
 
-
-def publish_plant_event(uid, humidity, temperature=None):
-    """ Publish a message to the 'planteur/plant' topic.
-
-    :param uid: the UID of the plant
-    :param humidity: the humidity (mandatory)
-    :param temperature: the temperature (optional)
-    """
-    if humidity is None:
-        logging.warning('Plant message cannot be published because humidity is not defined')
-
-    else:
-        d = dict()
-        d['plant'] = dict()
-        d['plant']['uid'] = uid
-        d['plant']['timestamp'] = time.time()
-        d['plant']['humidity'] = humidity
-        if temperature is not None:
-            d['plant']['temperature'] = temperature
-
-        message = json.dumps(d)
-        logging.info('Publish plant event: %s', message)
-        paho.mqtt.publish.single('planteur/plant', message)
-
-
-def publish_ambient_event(uid, humidity=None, temperature=None):
-    """ Publish a message to the 'planteur/ambient' topic.
-
-    At least humidity or temperature should be provided. Otherwise, message is discarded.
-
-    :param uid: the UID of the place
-    :param humidity: the humidity (optional)
-    :param temperature: the temperature (optional)
-    """
-    if (humidity is None) and (temperature is None):
-        logging.warning('Ambient message cannot be published because neither humidity nor temperature is defined')
-
-    else:
-        d = dict()
-        d['ambient'] = dict()
-        d['ambient']['uid'] = uid
-        d['ambient']['timestamp'] = time.time()
-        if humidity is not None:
-            d['ambient']['humidity'] = humidity
-        if temperature is not None:
-            d['ambient']['temperature'] = temperature
-
-        message = json.dumps(d)
-        logging.info('Publish ambient event: %s', message)
-        paho.mqtt.publish.single('planteur/ambient', message)
+import messaging
 
 
 class SerialMonitor:
@@ -125,7 +72,7 @@ class SerialMonitor:
                 humidity = frame.payload[0]
                 temperature = frame.payload[1]
 
-                publish_plant_event(uid, humidity=humidity, temperature=temperature)
+                messaging.publish_plant_message(uid, humidity=humidity, temperature=temperature)
 
             else:
                 # The frame is rejected because of one of the following reasons:
