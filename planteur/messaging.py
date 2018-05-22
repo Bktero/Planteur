@@ -13,7 +13,6 @@ def _sanitize(message):
     # mosquitto_sub receives strings on both platforms
     # Be safe and convert if needed
     if isinstance(message.payload, bytes):
-        # FIXME fix PEP8 warning about comparison
         message.payload = message.payload.decode("utf-8")
 
 
