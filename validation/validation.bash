@@ -68,7 +68,7 @@ function network_functional {
 
 	# Analyze results
 	mv planteur.db network_planteur.db
-	sqlite3 network_planteur.db 'select uid, humidity, temperature from monitoring;' > network_result.txt
+	sqlite3 network_planteur.db 'select uid, humidity, temperature from plant;' > network_result.txt
 	sqlite3 network_planteur.db 'select count(*) from watering;' >> network_result.txt
 
 	diff ${VALIDATION_DIR}/network_expected.txt network_result.txt 
@@ -104,7 +104,7 @@ function network_intense {
 
 	# Analyze results
 	mv planteur.db network_planteur.db
-	MONITORING=$(sqlite3 network_planteur.db 'select count(*) from monitoring;')
+	MONITORING=$(sqlite3 network_planteur.db 'select count(*) from plant;')
 	WATERING=$(sqlite3 network_planteur.db 'select count(*) from watering;')
 
 	echo ${MONITORING} ${WATERING}
@@ -145,7 +145,7 @@ function xbee_functional {
 
 	# Analyze results
 	mv planteur.db xbee_planteur.db
-	sqlite3 xbee_planteur.db 'select uid, humidity, temperature from monitoring;' > xbee_result.txt
+	sqlite3 xbee_planteur.db 'select uid, humidity, temperature from plant;' > xbee_result.txt
 	sqlite3 xbee_planteur.db 'select count(*) from watering;' >> xbee_result.txt
 
 	diff ${VALIDATION_DIR}/xbee_expected.txt xbee_result.txt 
@@ -182,7 +182,7 @@ function xbee_intense {
 
 	# Analyze results
 	mv planteur.db xbee_planteur.db
-	MONITORING=$(sqlite3 xbee_planteur.db 'select count(*) from monitoring;')
+	MONITORING=$(sqlite3 xbee_planteur.db 'select count(*) from plant;')
 	WATERING=$(sqlite3 xbee_planteur.db 'select count(*) from watering;')
 
 	echo ${MONITORING} ${WATERING}
@@ -226,10 +226,10 @@ make erase
 #-------------------------------------------------------
 # Run tests
 #-------------------------------------------------------
-network_functional
-clean
-network_intense
-clean
+#network_functional
+#clean
+#network_intense
+#clean
 xbee_functional
 clean
 xbee_intense

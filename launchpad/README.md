@@ -68,7 +68,7 @@ The [release history from Github](https://github.com/dlbeer/mspdebug/releases) t
 
 
 ------
-## Setting up an environment: the not so easy way (but the way to be more comfortable)
+## Setting up an environment: the not so easy way (but the way to get more comfortable)
 
 Facing these limitations and issues, I decided to move on to the newest versions.
 
@@ -103,11 +103,10 @@ I have discovered CMake in December 2016 and I have to say that I like it. I nev
 	cd [path to Eclipse workspace]
 	mkdir mps430-project
 	cd mps430-project
-	cmake -G"Eclipse CDT4 - Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=msp430.cmake -DCMAKE_ECLIPSE_VERSION=4.5 [path to git repo]/Planteur/launchpad/
+	cmake -G"Eclipse CDT4 - Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=msp430-elf.cmake -DCMAKE_ECLIPSE_VERSION=4.5 [path to git repo]/Planteur/launchpad/
 
-Finally, I imported this "existing project into workspace".
-
-Note that I encountered the exact same problem described [here](http://stackoverflow.com/questions/37426334/eclipse-freezes-when-creating-a-new-project-or-a-new-class): Eclipse (Mars) froze when I tried to create a new class. Same problem, same solution: changing the version of GTK that Eclipse uses solved my issue.
+Finally, I imported this "existing project into workspace". I encountered the exact same problem described [here](http://stackoverflow.com/questions/37426334/eclipse-freezes-when-creating-a-new-project-or-a-new-class):
+Eclipse (Mars) froze when I tried to create a new class. Same problem, same solution: changing the version of GTK that Eclipse uses solved my issue.
 
 It looks like I am not the only one to use Eclipse. See this (very complete article)[http://r6500.blogspot.fr/2014/11/portable-environment-for-msp430.html] by  Vicente Jiménez: "Portable environment for the MSP430 Launchpad".
 
