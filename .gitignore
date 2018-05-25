@@ -1,6 +1,6 @@
 # PyCharm's file for workspace preferences
 # See: https://www.jetbrains.com/help/pycharm/2016.1/project.html
-planteur/.idea/workspace.xml
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

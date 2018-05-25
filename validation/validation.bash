@@ -43,82 +43,6 @@ function clean {
 
 
 #-------------------------------------------------------
-# Network tests
-#-------------------------------------------------------
-function network_functional {
-	start network_functional
-
-	# Configure Planteur for network
-	cp ${VALIDATION_DIR}/network_plants.json plants.json
-
-	# Run Planteur
-	python3 app.py &
-	PLANTEUR_PID=$!
-
-	# Wait so that Planteur gains processor time to initialize
-	sleep 1
-
-	# Run network plants
-	python3 ${VALIDATION_DIR}/network_plants.py functional
-
-	# Wait a few seconds so that frames are processed before stopping Planteur
-	sleep 1
-	echo "Stop Planteur"
-	kill -9 ${PLANTEUR_PID}
-
-	# Analyze results
-	mv planteur.db network_planteur.db
-	sqlite3 network_planteur.db 'select uid, humidity, temperature from monitoring;' > network_result.txt
-	sqlite3 network_planteur.db 'select count(*) from watering;' >> network_result.txt
-
-	diff ${VALIDATION_DIR}/network_expected.txt network_result.txt 
-
-	if [ $? -eq 0 ]
-	then
-	    success
-	else
-	    failure
-	fi
-}
-
-function network_intense {
-	start network_intense
-
-	# Configure Planteur for network
-	cp ${VALIDATION_DIR}/network_plants.json plants.json
-
-	# Run Planteur
-	python3 app.py &
-	PLANTEUR_PID=$!
-
-	# Wait so that Planteur gains processor time to initialize
-	sleep 1
-
-	# Run network plants
-	python3 ${VALIDATION_DIR}/network_plants.py intense
-
-	# Wait a few seconds so that frames are processed before stopping Planteur
-	sleep 5
-	echo "Stop Planteur"
-	kill -9 ${PLANTEUR_PID}
-
-	# Analyze results
-	mv planteur.db network_planteur.db
-	MONITORING=$(sqlite3 network_planteur.db 'select count(*) from monitoring;')
-	WATERING=$(sqlite3 network_planteur.db 'select count(*) from watering;')
-
-	echo ${MONITORING} ${WATERING}
-
-	if [ ${MONITORING} -eq 200 -a ${WATERING} -eq 51 ]
-	then
-		success
-	else
-		failure
-	fi
-}
-
-
-#-------------------------------------------------------
 # XBee validation
 #-------------------------------------------------------
 function xbee_functional {
@@ -145,7 +69,7 @@ function xbee_functional {
 
 	# Analyze results
 	mv planteur.db xbee_planteur.db
-	sqlite3 xbee_planteur.db 'select uid, humidity, temperature from monitoring;' > xbee_result.txt
+	sqlite3 xbee_planteur.db 'select uid, humidity, temperature from plant;' > xbee_result.txt
 	sqlite3 xbee_planteur.db 'select count(*) from watering;' >> xbee_result.txt
 
 	diff ${VALIDATION_DIR}/xbee_expected.txt xbee_result.txt 
@@ -182,7 +106,7 @@ function xbee_intense {
 
 	# Analyze results
 	mv planteur.db xbee_planteur.db
-	MONITORING=$(sqlite3 xbee_planteur.db 'select count(*) from monitoring;')
+	MONITORING=$(sqlite3 xbee_planteur.db 'select count(*) from plant;')
 	WATERING=$(sqlite3 xbee_planteur.db 'select count(*) from watering;')
 
 	echo ${MONITORING} ${WATERING}
@@ -226,10 +150,10 @@ make erase
 #-------------------------------------------------------
 # Run tests
 #-------------------------------------------------------
-network_functional
-clean
-network_intense
-clean
+#network_functional
+#clean
+#network_intense
+#clean
 xbee_functional
 clean
 xbee_intense

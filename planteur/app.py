@@ -1,32 +1,19 @@
 """ This is the entry point for the Planteur application."""
 import json
 import logging
+from collections import namedtuple
 
 import serial
 
+import adapters
 import database
-import monitoring
 import plant
 import watering
 
-__author__ = 'pgradot'
 
-UDP_IPADDR = 'localhost'
-UDP_PORT = 14246
-
-
-def planteur(config_pathname, plant_pathname):
-    """Run the Planteur!
-
-    :param config_pathname: the pathname to the configuration file
-    :type config_pathname: str
-    :param plant_pathname: the pathname to the plant description file
-    :type plant_pathname: str
-    """
-    logging.info('Planteur application starts')
-
-    # Read configuration
+def _configure_logging(config_pathname):
     logging.info('Loading configuration...')
+
     with open(config_pathname) as file:
         # Load JSON content
         json_dict = json.load(file)
@@ -37,55 +24,63 @@ def planteur(config_pathname, plant_pathname):
         logging.info('Changing log level to %s', level)
         logging.getLogger().setLevel(level)
 
-        # XBee serial port
-        xbee_serial_port = json_dict['xbee']['serial_port']
+        # XBee port
+
+
+def _start_xbee_adapter(config_pathname, plants):
+    # Check that there if there is at least one network plant
+    xbee_ids_to_uids = dict()
+    for plant_ in plants:
+        if plant_.connection is plant.ConnectionType.xbee:
+            xbee_ids_to_uids[plant_.xbee_id] = plant_.uid
+
+    logging.debug('XBee ID <==> UID: %s', xbee_ids_to_uids)
+
+    if len(xbee_ids_to_uids) != 0:
+        # Get XBee port from configuration
+        with open(config_pathname) as file:
+            json_dict = json.load(file)
+            xbee_port = json_dict['xbee']['serial_port']
+
+        # Open port
+        ser = serial.Serial(xbee_port)
+
+        # Start adapter
+        xbee_adapter = adapters.XbeeAdapter(ser, xbee_ids_to_uids)
+        xbee_adapter.start()
+
+
+def planteur(config_pathname, plant_pathname):
+    """Run the Planteur :)
+
+    :param config_pathname: the pathname to the configuration file
+    :type config_pathname: str
+    :param plant_pathname: the pathname to the plant description file
+    :type plant_pathname: str
+    """
+    logging.info('Planteur application starts')
+    _configure_logging(config_pathname)
 
     # Load plants
     logging.info('Loading plants...')
-    plants = plant.load_plants_from_json(plant_pathname)
+    plants = plant.load_plants_from(plant_pathname)
     if len(plants) == 0:
         logging.warning('No plant has been loaded, plants.json may be empty')
 
-    # Create sprinkler, monitoring aggregator and database storer
-    storer = database.DatabaseStorer('planteur.db')
+    # Start database logger
+    db_logger = database.DatabaseLogger('planteur.db')
+    db_logger.start()
 
+    # Start sprinkler
     sprinkler = watering.Sprinkler(plants)
-    sprinkler.listeners.append(storer)
-
-    aggregator = monitoring.MonitoringAggregator(plants)
-    aggregator.listeners.append(storer)
-    aggregator.listeners.append(sprinkler)
-
-    # TODO create watering planner
-
-    aggregator.start()
     sprinkler.start()
 
-    # Start network adapter if there is at least one network plant
-    for plant_ in plants:
-        if plant_.connection is plant.ConnectionType.network:
-            network_adapter = monitoring.NetworkAdapter(aggregator, UDP_IPADDR, UDP_PORT)
-            network_adapter.start()
-            break
+    # TODO create watering planner if at least one plant as 'planned' as it's watering method
 
-    # Start an XBee adapter if there is at least one network plant
-    xbee_uids = dict()
-    for plant_ in plants:
-        if plant_.connection is plant.ConnectionType.xbee:
-            xbee_uids[plant_.xbee_id] = plant_.uid
+    # Start adapters
+    _start_xbee_adapter(config_pathname, plants)
 
-    if len(xbee_uids) != 0:
-        ser = serial.Serial(xbee_serial_port)
-        logging.debug('XBee ID <==> UID: %s', xbee_uids)
-        xbee_adapter = monitoring.XBeeAdapter(aggregator, ser, xbee_uids)
-        xbee_adapter.start()
-
-    # Start a wired adapter for each wired plant
-    # FIXME replace with custom class loading
-    for plant_ in plants:
-        if plant_.connection is plant.ConnectionType.wired:
-            wired_adapter = monitoring.StubWiredAdapter(aggregator, plant_.uid)
-            # wired_adapter.start()
+    # TODO create and start custom adapters
 
     # Startup complete
     logging.debug('Application startup is complete')

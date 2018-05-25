@@ -1,12 +1,9 @@
-""" This module provides classes to manipulate plants in the python world.
-"""
+""" This module provides classes and functions to manipulate plants in the Python world."""
 
 import json
 import logging
 
 from enum import Enum
-
-__author__ = 'pgradot'
 
 
 class ConnectionType(Enum):
@@ -46,11 +43,12 @@ class Plant:
             .format(self.__class__.__name__, self.uid, self.name, self.connection, self.watering)
 
 
-def load_plants_from_json(pathname: str):
-    """Loads the set of plants described in a JSON file.
+def load_plants_from(pathname: str):
+    """Load the set of plants described in a JSON file.
 
     Open the JSON description file represented by the pathname.
-    Create a python object for each described plant.
+    Create a Python object for each described plant.
+    Return them.
 
     :param pathname: the pathname to the description file
     :return: a list of plants
@@ -72,7 +70,7 @@ def load_plants_from_json(pathname: str):
             logging.info('Loading plant: %s', plant)
             plants.append(plant)
 
-            # Add special fields depending on the type of plant
+            # Add special fields depending on the type of connection
             if plant.connection == ConnectionType.xbee:
                 plant.xbee_id = int(plant_dict['xbee_id'])
 
