@@ -5,6 +5,7 @@ import threading
 import paho.mqtt.client
 
 import messaging
+import plant
 
 
 class Sprinkler:
@@ -32,30 +33,25 @@ class Sprinkler:
             timestamp, uid, humidity, temperature = messaging.decode_plant_message(message)
 
             # Find the plant in the list
-            # TODO look if plant is known
-            # my_plant = None
-            # for p in self._plants:
-            #     if p.uid == uid and p.watering == plant.WateringMethod.conditional:
-            #         my_plant = p
-            #         break
-            # STUB:
-            class Plant:
-                def __init__(self, uid):
-                    self.uid = uid
-
-            my_plant = Plant(uid)
-            # END_STUB
+            the_plant = None
+            for p in self.plants:
+                if p.uid == uid:
+                    the_plant = p
+                    break
 
             # Process event if the plant has conditional watering method
-            if my_plant is not None:
+            if the_plant is not None and the_plant.watering == plant.WateringMethod.conditional:
                 if temperature is not None and temperature >= 25:
                     # It's hot out there, the plant needs more water!
                     if humidity <= 60:
-                        messaging.publish_watering_message(my_plant.uid)
+                        messaging.publish_watering_message(the_plant.uid)
 
                 else:
                     if humidity <= 50:
-                        messaging.publish_watering_message(my_plant.uid)
+                        messaging.publish_watering_message(the_plant.uid)
+            else:
+                logging.debug('%s: ignore message because %s is not watered conditionally', self.__class__.__name__,
+                              the_plant.uid)
 
         # Set callbacks
         self.client.on_connect = on_connect
